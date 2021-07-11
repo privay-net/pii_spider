@@ -1,4 +1,5 @@
 #lang racket/base
+(require "sniff.rkt")
 
 (module+ test
   (require rackunit))
@@ -25,11 +26,6 @@
 
 ;; Code here
 
-(module pii racket
-  (provide sniff)
-  (define (sniff location)
-    print location))
-
 (module+ test
   ;; Any code in this `test` submodule runs when this file is run using DrRacket
   ;; or with `raco test`. The code here does not run when this file is
@@ -50,4 +46,4 @@
     #:once-each
     [("-d" "--database") database "the database URL to connect to" (set-box! what database)]
     #:args ()
-    (pii/sniff (unbox what))))
+    (sniffer (unbox what))))
