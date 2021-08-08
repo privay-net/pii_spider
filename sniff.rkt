@@ -20,8 +20,15 @@
       (postgresql-connect #:user "robert"
                         #:database "pii"
                         #:password "bhujasample4$"))
-(define (examine-table table-name connection)
-  #t)
+
+(define (examine-table table-name connection #:query-function [query-rows query-rows])
+
+  (let ([query (string-append "select * from " table-name ";")])
+    ;get rows
+    (query-rows connection query))
+  ; look in each row for pii data
+  ; return pii rows
+  )
 
 (module+ test
   (require rackunit)
@@ -29,25 +36,31 @@
   (require mock/rackunit)
 
   (define-opaque test-connection)
+  (define connector-mock (mock #:behavior (const test-connection)))
   (define-opaque test-list-tables)
+  (define list-tables-mock (mock #:behavior (const test-list-tables)))
+    
   
+  ; TODO make this a big old omnibus test
   (test-case "sniffer returns a report structure"
-   (check-eq? (sniffer "not://a.url/test") "not://a.url/test"))
+    (check-eq?
+     (sniffer "not://a.url/test"
+              #:connector connector-mock
+              #:list-tables list-tables-mock) "not://a.url/test"))
 
   (test-case "sniffer compiles a list of tables to examine"
-    (define connector-mock (mock #:behavior (const test-connection)))
-    (define list-tables-mock (mock #:behavior (const test-list-tables)))
-    
     (sniffer "not://a.url/test" #:connector connector-mock #:list-tables list-tables-mock)
     (check-mock-called-with? list-tables-mock (arguments test-connection)))
 
   (test-case "initialise-connection gets the connection for a database"
-    (define connector-mock (mock #:behavior (const test-connection)))
     (initialise-connection #:connector connector-mock)
     (check-mock-called-with? connector-mock (arguments #:database "pii"
                                                        #:password "bhujasample4$"
                                                        #:user "robert")))
-
   
   (test-case "examine-table gets the rows from the table"
-    (check-eq? (examine-table "users" test-connection) #t)))
+    (define query-mock (mock #:behavior (const test-connection)))
+    (examine-table "foo" connector-mock #:query-function query-mock)
+    (check-mock-called-with? query-mock (arguments connector-mock "select * from foo;"))))
+
+; TODO deal with table not existing error
