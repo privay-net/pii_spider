@@ -47,6 +47,7 @@
                       #:password "bhujasample4$"))
 
 (module+ test
+  ;;; TODO make the connection dynamic from env vars
   ;;; TODO deal with a failed connection
   ;;; TODO pool connections
   (test-case "initialise-connection gets the connection for a database"
