@@ -1,6 +1,7 @@
 #lang racket
 
 (require db)
+(require (prefix-in rules: "pii/rules.rkt"))
 
 (provide sniffer)
 (define (sniffer url #:connector [initialise-connection initialise-connection]
@@ -11,7 +12,8 @@
   ; find all the tables
   (list-tables pgc)
   ; deal with taking some small number of rows vs scanning the entire thing
-  ; check for pii_data in each table
+  ; grab rows of data from each table
+  ; have a set of rules applied to each set of table rows  
   ; look in each row for pii data
   ; return pii rows
 
@@ -40,11 +42,11 @@
     (sniffer "not://a.url/test" #:connector connector-mock #:list-tables list-tables-mock)
     (check-mock-called-with? list-tables-mock (arguments test-connection))))
 
-
 (define (initialise-connection #:connector [postgresql-connect postgresql-connect])
   (postgresql-connect #:user "robert"
                       #:database "pii"
                       #:password "bhujasample4$"))
+
 
 (module+ test
   ;;; TODO make the connection dynamic from env vars
@@ -55,7 +57,6 @@
     (check-mock-called-with? connector-mock (arguments #:database "pii"
                                                        #:password "bhujasample4$"
                                                        #:user "robert"))))
-
 
 (define (examine-table connection table-name #:query-function [query-rows query-rows])
   (let ([query (string-append "select * from \"" table-name "\";")])
@@ -73,15 +74,55 @@
     (define query-mock (mock #:behavior (const one-row-result)))
     (check-eq? (examine-table connector-mock "foo" #:query-function query-mock) one-row-result)))
 
+(define (examine-rows rows rules #:examiner-function [sniff-for-pii sniff-for-pii])
+  ; (map (lambda (rule)
+  (define rule (car rules))
 
-(define (sniff-for-pii row rule)
+  (map (lambda (row) (sniff-for-pii row rule)) rows)) ;rules))
+
+(module+ test
+  (test-case "examine-rows applies sniff-for-pii to each row and rule"
+    (define sniff-for-pii-mock (mock #:behavior (const (void)) ))
+    (define rows '(#(1 "robert@test.com" "0412345678" "Robert")
+                   #(2 "rob@test.com" "0412345679" "Rob")))
+    (define rule1-mock (mock #:behavior (const (void)) ))
+    (define rule2-mock (mock #:behavior (const (void)) ))
+    (define rules (list rule1-mock rule2-mock))
+    (examine-rows rows rules #:examiner-function sniff-for-pii-mock)
+    (check-mock-called-with? sniff-for-pii-mock (arguments (car rows) (car rules)))
+    (check-mock-called-with? sniff-for-pii-mock (arguments (cadr rows) (car rules)))
+    ;(check-mock-called-with? sniff-for-pii-mock (arguments (car rows) (cadr rules)))
+    ;(check-mock-called-with? sniff-for-pii-mock (arguments (cadr rows) (cadr rules)))
+    ))
+
+(define (extract-primary-key row [primary-key-locations '(0)])
+  (map  (lambda (location) (vector-ref row location)) primary-key-locations))
+
+(module+ test
+  (test-case "extract-primary-key returns the value of the first column as the default primary key"
+    (define primary-key 1)
+    (define row (vector primary-key "robert@test.com" "0412345678" "Robert"))
+    (check-equal? (car (extract-primary-key row)) primary-key))
+  (test-case "extract-primary-key returns a list of values as the primary key"
+    (define target-keys '(0 1 2))
+    (define key-fields '(1 "robert@test.com" "0412345678"))
+    (define row (list->vector (append key-fields '("Robert"))))
+    (check-equal? (extract-primary-key row target-keys) key-fields)))
+
+(define (instances-of-pii row rule)
+  (displayln rule)
+  (define primary-key (extract-primary-key row))
   (let ([row-results  (vector-map rule row)])
     (foldl (lambda (column-result result)
              (if (cadr column-result)
                  (list (add1 (car result)) (car column-result) )
                  (list (car result) (car column-result) )))
-                                    '(0 "")
-                                    (vector->list row-results))))
+           '(0 "")
+           (vector->list row-results))))
+
+;; this is not descriptive enough it tells you the number of times a row had PII in it, but not the identifier of the row.
+(define (sniff-for-pii row rule)
+  (instances-of-pii row rule))
 
 (module+ test
   (define row-result #(1 "user@example.com"))
