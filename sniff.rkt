@@ -109,9 +109,8 @@
     (define row (list->vector (append key-fields '("Robert"))))
     (check-equal? (extract-primary-key row target-keys) key-fields)))
 
-(define (instances-of-pii row rule)
-  (displayln rule)
-  (define primary-key (extract-primary-key row))
+;; this is not descriptive enough it tells you the number of times a row had PII in it, but not the identifier of the row.
+(define (sniff-for-pii row rule)
   (let ([row-results  (vector-map rule row)])
     (foldl (lambda (column-result result)
              (if (cadr column-result)
@@ -119,10 +118,6 @@
                  (list (car result) (car column-result) )))
            '(0 "")
            (vector->list row-results))))
-
-;; this is not descriptive enough it tells you the number of times a row had PII in it, but not the identifier of the row.
-(define (sniff-for-pii row rule)
-  (instances-of-pii row rule))
 
 (module+ test
   (define row-result #(1 "user@example.com"))
