@@ -78,7 +78,7 @@
   ; (map (lambda (rule)
   (define rule (car rules))
 
-  (map (lambda (row) (sniff-for-pii row rule)) rows)) ;rules))
+  (map (lambda (row) (list (extract-primary-key row) (sniff-for-pii row rule))) rows)) ;rules))
 
 (module+ test
   (test-case "examine-rows applies sniff-for-pii to each row and rule"
@@ -96,18 +96,19 @@
     ))
 
 (define (extract-primary-key row [primary-key-locations '(0)])
-  (map  (lambda (location) (vector-ref row location)) primary-key-locations))
+  (list "key" 
+        (map  (lambda (location) (vector-ref row location)) primary-key-locations)))
 
 (module+ test
   (test-case "extract-primary-key returns the value of the first column as the default primary key"
     (define primary-key 1)
     (define row (vector primary-key "robert@test.com" "0412345678" "Robert"))
-    (check-equal? (car (extract-primary-key row)) primary-key))
+    (check-equal? (extract-primary-key row) (list "key" (list primary-key))))
   (test-case "extract-primary-key returns a list of values as the primary key"
     (define target-keys '(0 1 2))
     (define key-fields '(1 "robert@test.com" "0412345678"))
     (define row (list->vector (append key-fields '("Robert"))))
-    (check-equal? (extract-primary-key row target-keys) key-fields)))
+    (check-equal? (extract-primary-key row target-keys) (list "key" key-fields))))
 
 ;; this is not descriptive enough it tells you the number of times a row had PII in it, but not the identifier of the row.
 (define (sniff-for-pii row rule)
