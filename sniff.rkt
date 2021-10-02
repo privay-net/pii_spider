@@ -75,10 +75,11 @@
     (check-eq? (examine-table connector-mock "foo" #:query-function query-mock) one-row-result)))
 
 (define (examine-rows rows rules #:examiner-function [sniff-for-pii sniff-for-pii])
-  ; (map (lambda (rule)
-  (define rule (car rules))
-
-  (map (lambda (row) (list (extract-primary-key row) (sniff-for-pii row rule))) rows)) ;rules))
+  (map (lambda (rule)
+         (map (lambda (row)
+                (list (extract-primary-key row)
+                      (sniff-for-pii row rule)))
+              rows)) rules))
 
 (module+ test
   (test-case "examine-rows applies sniff-for-pii to each row and rule"
@@ -91,9 +92,8 @@
     (examine-rows rows rules #:examiner-function sniff-for-pii-mock)
     (check-mock-called-with? sniff-for-pii-mock (arguments (car rows) (car rules)))
     (check-mock-called-with? sniff-for-pii-mock (arguments (cadr rows) (car rules)))
-    ;(check-mock-called-with? sniff-for-pii-mock (arguments (car rows) (cadr rules)))
-    ;(check-mock-called-with? sniff-for-pii-mock (arguments (cadr rows) (cadr rules)))
-    ))
+    (check-mock-called-with? sniff-for-pii-mock (arguments (car rows) (cadr rules)))
+    (check-mock-called-with? sniff-for-pii-mock (arguments (cadr rows) (cadr rules)))))
 
 (define (extract-primary-key row [primary-key-locations '(0)])
   (list "key" 
