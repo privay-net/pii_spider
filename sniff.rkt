@@ -13,10 +13,12 @@
   (list-tables pgc)
   ; deal with taking some small number of rows vs scanning the entire thing
   ; grab rows of data from each table
-  ; have a set of rules applied to each set of table rows  
+  ;; (define rows (examine-table pgc "users"))
+  ; have a set of rules applied to each set of table rows
+  (define rules (list rules:email rules:au-phone-number))
   ; look in each row for pii data
   ; return pii rows
-
+  ;; (examine-rows rows rules)
   ; return report
   url)
 
@@ -59,6 +61,7 @@
                                                        #:user "robert"))))
 
 (define (examine-table connection table-name #:query-function [query-rows query-rows])
+  ;; use a better query and detect the primary key
   (let ([query (string-append "select * from \"" table-name "\";")])
     (query-rows connection query)))
 
@@ -110,7 +113,6 @@
     (define row (list->vector (append key-fields '("Robert"))))
     (check-equal? (extract-primary-key row target-keys) (list "key" key-fields))))
 
-;; this is not descriptive enough it tells you the number of times a row had PII in it, but not the identifier of the row.
 (define (sniff-for-pii row rule)
   (let ([row-results  (vector-map rule row)])
     (foldl (lambda (column-result result)
