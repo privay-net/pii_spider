@@ -1,6 +1,6 @@
 #lang info
 (define collection "pii-sniffer")
-(define deps '("base"))
+(define deps '("base" "gregor" "txexpr"))
 (define build-deps '("scribble-lib" "racket-doc" "rackunit-lib" "mocks" "rackunit-mocks"))
 (define scribblings '(("scribblings/pii_sniffer.scrbl" ())))
 (define pkg-desc "Sniff out PII data")
