@@ -1,6 +1,7 @@
 #lang racket
 
 (require db)
+(require "examined-rows.rkt")
 (require (prefix-in rules: "pii/rules.rkt"))
 
 (provide sniffer)
@@ -80,8 +81,8 @@
 (define (examine-rows rows rules #:examiner-function [sniff-for-pii sniff-for-pii])
   (map (lambda (rule)
          (map (lambda (row)
-                (list (extract-primary-key row)
-                      (sniff-for-pii row rule)))
+                (examined-row (extract-primary-key row)
+                              (sniff-for-pii row rule)))
               rows)) rules))
 
 (module+ test
