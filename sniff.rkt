@@ -80,10 +80,10 @@
 
 (define (examine-rows rows rules #:examiner-function [sniff-for-pii sniff-for-pii])
   (map (lambda (row)
-         (map (lambda (rule)
-                (examined-row (extract-primary-key row)
-                              (sniff-for-pii row rule)))
-              rules)) rows))
+         (examined-row (extract-primary-key row)
+                       (map (lambda (rule)
+                              (sniff-for-pii row rule))
+                            rules))) rows))
 
 (module+ test
   (test-case "examine-rows applies sniff-for-pii to each row and rule"
