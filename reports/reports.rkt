@@ -28,12 +28,13 @@
     (check-mock-called-with?  table-creator-mock (arguments test-rows))))
 
 (define (create-data-table rows)
-  (txexpr 'table empty
-          (txexpr 'tr empty
-                 (txexpr 'th empty (list "Key")))))
+  (txexpr* 'table empty
+           (txexpr* 'tr empty
+                    (txexpr 'th empty (list "Key"))
+                    (txexpr 'th empty (list "Rule")))))
 
 (module+ test
   (test-case "create-data-table will create a table presenting the result"
-    (define result "<table><<tr>th>Key</th><th>Rule</th></tr></table>")
+    (define result "<table><tr><th>Key</th><th>Rule</th></tr></table>")
     (define test-row (list 1 2 3 4))
-    (check-equal? (xexpr->string (create-data-table test-row)) result)))
+    (check-equal? (xexpr->html (create-data-table test-row)) result)))
