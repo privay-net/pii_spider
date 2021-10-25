@@ -100,19 +100,19 @@
     (check-mock-called-with? sniff-for-pii-mock (arguments (cadr rows) (cadr rules)))))
 
 (define (extract-primary-key row [primary-key-locations '(0)])
-  (list "key" 
+  (hash "key" 
         (map  (lambda (location) (vector-ref row location)) primary-key-locations)))
 
 (module+ test
   (test-case "extract-primary-key returns the value of the first column as the default primary key"
     (define primary-key 1)
     (define row (vector primary-key "robert@test.com" "0412345678" "Robert"))
-    (check-equal? (extract-primary-key row) (list "key" (list primary-key))))
+    (check-equal? (extract-primary-key row) (hash "key" (list primary-key))))
   (test-case "extract-primary-key returns a list of values as the primary key"
     (define target-keys '(0 1 2))
     (define key-fields '(1 "robert@test.com" "0412345678"))
     (define row (list->vector (append key-fields '("Robert"))))
-    (check-equal? (extract-primary-key row target-keys) (list "key" key-fields))))
+    (check-equal? (extract-primary-key row target-keys) (hash "key" key-fields))))
 
 (define (sniff-for-pii row rule)
   (let ([row-results  (vector-map rule row)])
