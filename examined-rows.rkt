@@ -2,7 +2,7 @@
 
 (require racket/struct)
 
-(provide examined-row)
+(provide examined-row examined-row-id examined-row-results)
 
 (struct examined-row (id results)
   #:methods gen:custom-write
