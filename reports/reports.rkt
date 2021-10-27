@@ -61,24 +61,23 @@
     (define no-rows empty)
     (check-equal? (xexpr->html (create-data-table-rows no-rows)) result))
   (test-case "create-data-table-rows will create a data row"
-    (define result "<tr><td>Blah</td><td>Blah</td></tr>")
+    (define result "<tr><td>&#1;</td><td><ul><li>email address</li><li>AU phone number</li></ul></td></tr><tr><td>&#2;</td><td><ul><li>email address</li><li>AU phone number</li></ul></td></tr>")
     (define test-row (examined-row (hash "key" '(1)) '((1 "email address") (1 "AU phone number"))))
     (check-equal? (xexpr->html (create-data-table-rows test-row)) result)))
 
-;; TODO can I do this using recursion?
 (define (rule-list rules)
   (if (empty? rules)
       (txexpr 'p empty '("No rules to display."))
-      (txexpr* 'ul empty
-               (for ([rule rules])
-                 (txexpr 'li empty (list (cadr rule)))))))
+      (txexpr 'ul empty
+               (for/list ([rule rules])
+                 (quasiquote (li (unquote (cadr rule))))))))
 
 (module+ test
   (test-case "rule-list will return a default message if the rule list is empty"
-    (define result "<p>No rules to display.</p>")
-    (define no-rules empty)
-    (check-equal? (xexpr->html (rule-list no-rules)) result))
+       (define result "<p>No rules to display.</p>")
+       (define no-rules empty)
+       (check-equal? (xexpr->html (rule-list no-rules)) result))
   (test-case "rule-list will return an unordered list of each rule"
-    (define result "<ul>No rules to display.</ul>")
+    (define result "<ul><li>email address</li><li>AU phone number</li></ul>")
     (define two-rules '((1 "email address") (1 "AU phone number")))
     (check-equal? (xexpr->html (rule-list two-rules)) result)))
