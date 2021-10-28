@@ -27,12 +27,12 @@
     (html-report test-rows #:table-creator table-creator-mock)
     (check-mock-called-with?  table-creator-mock (arguments test-rows))))
 
+(define (table-header-row)
+  (txexpr* 'tr empty
+           (txexpr 'th empty (list "Key"))
+           (txexpr 'th empty (list "Rule"))))
 (define (row-table rows #:row-creator [create-data-table-rows create-data-table-rows])
-  (txexpr* 'table empty
-           (txexpr* 'tr empty
-                    (txexpr 'th empty (list "Key"))
-                    (txexpr 'th empty (list "Rule")))
-           (create-data-table-rows rows)))
+  (txexpr 'table empty (list (table-header-row) (create-data-table-rows rows))))
 
 (module+ test
   (test-case "row-table will create a table presenting the result"
@@ -50,20 +50,26 @@
   (if (empty? rows)
       (txexpr* 'tr empty
                (txexpr 'td empty '("No rows were examined")))
-      (txexpr* 'tr empty
-               (txexpr 'td empty (hash-ref (examined-row-id rows) "key"))
-               (txexpr* 'td empty
-                        (rule-list (examined-row-results rows))))))
+      (map (lambda (row)
+             (txexpr* 'tr empty
+                      (txexpr 'td empty (hash-ref (examined-row-id row) "key"))
+                      (txexpr 'td empty
+                               (rule-list (examined-row-results row))))) rows)))
 
 (module+ test
   (test-case "create-data-table-rows will return a defult message if the row list is empty"
     (define result "<tr><td>No rows were examined</td></tr>")
     (define no-rows empty)
     (check-equal? (xexpr->html (create-data-table-rows no-rows)) result))
-  (test-case "create-data-table-rows will create a data row"
+  (test-case "create-data-table-rows will create a data row with a single examined-row"
+    (define result "<tr><td>&#1;</td><td><ul><li>email address</li><li>AU phone number</li></ul></td></tr>")
+    (define test-row (list (examined-row (hash "key" '(1)) '((1 "email address") (1 "AU phone number")))))
+    (check-equal? (xexpr->html (create-data-table-rows test-row)) result))
+   (test-case "create-data-table-rows will create multiple data rows with multiple examined-rows"
     (define result "<tr><td>&#1;</td><td><ul><li>email address</li><li>AU phone number</li></ul></td></tr><tr><td>&#2;</td><td><ul><li>email address</li><li>AU phone number</li></ul></td></tr>")
-    (define test-row (examined-row (hash "key" '(1)) '((1 "email address") (1 "AU phone number"))))
-    (check-equal? (xexpr->html (create-data-table-rows test-row)) result)))
+    (define test-rows (list  (examined-row (hash "key" '(1)) '((1 "email address") (1 "AU phone number")))
+                            (examined-row (hash "key" '(2)) '((1 "email address") (1 "AU phone number")))))
+    (check-equal? (xexpr->html (create-data-table-rows test-rows)) result)))
 
 (define (rule-list rules)
   (if (empty? rules)
