@@ -25,25 +25,40 @@
     (define test-rows '())
     (define table-creator-mock (mock #:behavior (const  (list  "mock table"))))
     (html-report test-rows #:table-creator table-creator-mock)
-    (check-mock-called-with?  table-creator-mock (arguments test-rows))))
+    (check-mock-called-with?  table-creator-mock (arguments test-rows)))
+  (test-case "html-report produces a report for the table"
+    (define result "<html><head></head><body>&table;<tr><th>Key</th><th>Rule</th></tr><tr><td>&#1;</td><td><ul class=\"rule-list\"><li>email address</li><li>AU phone number</li></ul></td></tr><tr><td>&#2;</td><td><ul class=\"rule-list\"><li>email address</li><li>AU phone number</li></ul></td></tr></body></html>")
+    (define test-rows (list  (examined-row (hash "key" '(1))
+                                           '((1 "email address") (1 "AU phone number")))
+                             (examined-row (hash "key" '(2))
+                                           '((1 "email address") (1 "AU phone number"))))) 
+    (check-equal? (html-report test-rows) result)))
 
 (define (table-header-row)
   (txexpr* 'tr empty
            (txexpr 'th empty (list "Key"))
            (txexpr 'th empty (list "Rule"))))
+
 (module+ test
   (test-case "row-table will create a table presenting the result"
     (define result "<tr><th>Key</th><th>Rule</th></tr>")
     (check-equal? (xexpr->html (table-header-row)) result)))
 
 (define (row-table rows #:row-creator [create-data-table-rows create-data-table-rows])
-  (txexpr 'table empty (list (table-header-row) (create-data-table-rows rows))))
+  (txexpr 'table empty (cons (table-header-row) (create-data-table-rows rows))))
 
 (module+ test
-  (test-case "row-table will create a table presenting the result"
+  (test-case "row-table will create a table presenting an empty result"
     (define result "<table><tr><th>Key</th><th>Rule</th></tr><tr><td>No rows were examined</td></tr></table>")
     (define test-row empty)
     (check-equal? (xexpr->html (row-table test-row)) result))
+   (test-case "row-table will create a table presenting the result"
+     (define result "<table><tr><th>Key</th><th>Rule</th></tr><tr><td>&#1;</td><td><ul class=\"rule-list\"><li>email address</li><li>AU phone number</li></ul></td></tr><tr><td>&#2;</td><td><ul class=\"rule-list\"><li>email address</li><li>AU phone number</li></ul></td></tr></table>")
+  (define test-rows (list  (examined-row (hash "key" '(1))
+                                           '((1 "email address") (1 "AU phone number")))
+                             (examined-row (hash "key" '(2))
+                                           '((1 "email address") (1 "AU phone number")))))
+    (check-equal? (xexpr->html (row-table test-rows)) result))
   (test-case "row-table calls the row-creator"
     (define test-rows '())
     (define mock-result (txexpr 'tr empty (list "test")))
@@ -53,8 +68,9 @@
 
 (define (create-data-table-rows rows)
   (if (empty? rows)
-      (txexpr* 'tr empty
-               (txexpr 'td empty '("No rows were examined")))
+      ;; the reason I'm puttiing a list here is to make the interface regular
+      (list (txexpr* 'tr empty
+                     (txexpr 'td empty '("No rows were examined"))))
       (map (lambda (row)
              (txexpr* 'tr empty
                       (txexpr 'td empty (hash-ref (examined-row-id row) "key"))
@@ -63,9 +79,9 @@
 
 (module+ test
   (test-case "create-data-table-rows will return a defult message if the row list is empty"
-    (define result "<tr><td>No rows were examined</td></tr>")
+    (define result '((tr (td "No rows were examined"))))
     (define no-rows empty)
-    (check-equal? (xexpr->html (create-data-table-rows no-rows)) result))
+    (check-equal? (create-data-table-rows no-rows) result))
   (test-case "create-data-table-rows will create a data row with a single examined-row"
     (define result '((tr (td 1)
                          (td (ul ((class "rule-list"))
