@@ -31,6 +31,11 @@
   (txexpr* 'tr empty
            (txexpr 'th empty (list "Key"))
            (txexpr 'th empty (list "Rule"))))
+(module+ test
+  (test-case "row-table will create a table presenting the result"
+    (define result "<tr><th>Key</th><th>Rule</th></tr>")
+    (check-equal? (xexpr->html (table-header-row)) result)))
+
 (define (row-table rows #:row-creator [create-data-table-rows create-data-table-rows])
   (txexpr 'table empty (list (table-header-row) (create-data-table-rows rows))))
 
@@ -53,7 +58,7 @@
       (map (lambda (row)
              (txexpr* 'tr empty
                       (txexpr 'td empty (hash-ref (examined-row-id row) "key"))
-                      (txexpr 'td empty
+                      (txexpr* 'td empty
                                (rule-list (examined-row-results row))))) rows)))
 
 (module+ test
@@ -62,28 +67,39 @@
     (define no-rows empty)
     (check-equal? (xexpr->html (create-data-table-rows no-rows)) result))
   (test-case "create-data-table-rows will create a data row with a single examined-row"
-    (define result "<tr><td>&#1;</td><td><ul><li>email address</li><li>AU phone number</li></ul></td></tr>")
-    (define test-row (list (examined-row (hash "key" '(1)) '((1 "email address") (1 "AU phone number")))))
-    (check-equal? (xexpr->html (create-data-table-rows test-row)) result))
+    (define result '((tr (td 1)
+                         (td (ul ((class "rule-list"))
+                                 (li "email address")
+                                 (li "AU phone number"))))))
+    (define test-row (list (examined-row (hash "key" '(1))
+                                         '((1 "email address") (1 "AU phone number")))))
+    (check-equal? (create-data-table-rows test-row) result))
    (test-case "create-data-table-rows will create multiple data rows with multiple examined-rows"
-    (define result "<tr><td>&#1;</td><td><ul><li>email address</li><li>AU phone number</li></ul></td></tr><tr><td>&#2;</td><td><ul><li>email address</li><li>AU phone number</li></ul></td></tr>")
-    (define test-rows (list  (examined-row (hash "key" '(1)) '((1 "email address") (1 "AU phone number")))
-                            (examined-row (hash "key" '(2)) '((1 "email address") (1 "AU phone number")))))
-    (check-equal? (xexpr->html (create-data-table-rows test-rows)) result)))
+     (define result  '((tr (td 1) (td (ul ((class "rule-list"))
+                                          (li "email address")
+                                          (li "AU phone number"))))
+                       (tr (td 2) (td (ul ((class "rule-list"))
+                                          (li "email address")
+                                          (li "AU phone number"))))))
+    (define test-rows (list  (examined-row (hash "key" '(1))
+                                           '((1 "email address") (1 "AU phone number")))
+                             (examined-row (hash "key" '(2))
+                                           '((1 "email address") (1 "AU phone number")))))
+    (check-equal? (create-data-table-rows test-rows) result)))
 
 (define (rule-list rules)
   (if (empty? rules)
       (txexpr 'p empty '("No rules to display."))
-      (txexpr 'ul empty
+      (txexpr 'ul '((class "rule-list"))
                (for/list ([rule rules])
                  (quasiquote (li (unquote (cadr rule))))))))
 
 (module+ test
   (test-case "rule-list will return a default message if the rule list is empty"
-       (define result "<p>No rules to display.</p>")
-       (define no-rules empty)
-       (check-equal? (xexpr->html (rule-list no-rules)) result))
+    (define result "<p>No rules to display.</p>")
+    (define no-rules empty)
+    (check-equal? (xexpr->html (rule-list no-rules)) result))
   (test-case "rule-list will return an unordered list of each rule"
-    (define result "<ul><li>email address</li><li>AU phone number</li></ul>")
+    (define result "<ul class=\"rule-list\"><li>email address</li><li>AU phone number</li></ul>")
     (define two-rules '((1 "email address") (1 "AU phone number")))
     (check-equal? (xexpr->html (rule-list two-rules)) result)))
