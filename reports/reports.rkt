@@ -12,37 +12,27 @@
 ;; TODO deal with empty results
 ;; TODO deal with multiple tables
 (define (html-report rows #:table-creator [row-table row-table])
-  (define wrapper (list 'html '(head) (txexpr 'body empty (row-table rows))))
+  (define wrapper (list 'html '(head) (txexpr* 'body empty (row-table rows))))
   (xexpr->html wrapper))
 
 (module+ test
   (test-case "html-report produces a HTML report of the run"
-    (define result "<html><head></head><body>mock table</body></html>")
+    (define result "<html><head></head><body><p>mock table</p></body></html>")
     (define test-rows '())
-    (define table-creator-mock (mock #:behavior (const  (list  "mock table"))))
+    (define table-creator-mock (mock #:behavior (const (txexpr 'p empty (list "mock table")))))
     (check-equal? (html-report test-rows #:table-creator table-creator-mock) result))
   (test-case "html-report calls the table-creator"
     (define test-rows '())
-    (define table-creator-mock (mock #:behavior (const  (list  "mock table"))))
+    (define table-creator-mock (mock #:behavior (const (txexpr 'p empty (list "mock table")))))
     (html-report test-rows #:table-creator table-creator-mock)
     (check-mock-called-with?  table-creator-mock (arguments test-rows)))
   (test-case "html-report produces a report for the table"
-    (define result "<html><head></head><body>&table;<tr><th>Key</th><th>Rule</th></tr><tr><td>&#1;</td><td><ul class=\"rule-list\"><li>email address</li><li>AU phone number</li></ul></td></tr><tr><td>&#2;</td><td><ul class=\"rule-list\"><li>email address</li><li>AU phone number</li></ul></td></tr></body></html>")
+    (define result "<html><head></head><body><table><tr><th>Key</th><th>Rule</th></tr><tr><td>&#1;</td><td><ul class=\"rule-list\"><li>email address</li><li>AU phone number</li></ul></td></tr><tr><td>&#2;</td><td><ul class=\"rule-list\"><li>email address</li><li>AU phone number</li></ul></td></tr></table></body></html>")
     (define test-rows (list  (examined-row (hash "key" '(1))
                                            '((1 "email address") (1 "AU phone number")))
                              (examined-row (hash "key" '(2))
                                            '((1 "email address") (1 "AU phone number"))))) 
     (check-equal? (html-report test-rows) result)))
-
-(define (table-header-row)
-  (txexpr* 'tr empty
-           (txexpr 'th empty (list "Key"))
-           (txexpr 'th empty (list "Rule"))))
-
-(module+ test
-  (test-case "row-table will create a table presenting the result"
-    (define result "<tr><th>Key</th><th>Rule</th></tr>")
-    (check-equal? (xexpr->html (table-header-row)) result)))
 
 (define (row-table rows #:row-creator [create-data-table-rows create-data-table-rows])
   (txexpr 'table empty (cons (table-header-row) (create-data-table-rows rows))))
@@ -65,6 +55,16 @@
     (define row-creator-mock (mock #:behavior (const mock-result)))
     (row-table test-rows #:row-creator row-creator-mock)
     (check-mock-called-with?  row-creator-mock (arguments test-rows))))
+
+(define (table-header-row)
+  (txexpr* 'tr empty
+           (txexpr 'th empty (list "Key"))
+           (txexpr 'th empty (list "Rule"))))
+
+(module+ test
+  (test-case "row-table will create a table presenting the result"
+    (define result "<tr><th>Key</th><th>Rule</th></tr>")
+    (check-equal? (xexpr->html (table-header-row)) result)))
 
 (define (create-data-table-rows rows)
   (if (empty? rows)
