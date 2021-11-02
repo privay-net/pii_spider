@@ -12,13 +12,14 @@
 ;; TODO deal with empty results
 ;; TODO deal with multiple tables
 (define (html-report rows #:table-creator [row-table row-table])
-  (define wrapper (list 'html '(head)
-                        (txexpr* 'body empty (row-table rows))))
-  (xexpr->html wrapper))
+  (define wrapper (txexpr* 'html empty
+                           (txexpr* 'head empty)
+                           (txexpr* 'body empty (row-table rows))))
+  (string-append "<!DOCTYPE html>" (xexpr->html wrapper)))
 
 (module+ test
   (test-case "html-report produces a HTML report of the run"
-    (define result "<html><head></head><body><p>mock table</p></body></html>")
+    (define result "<!DOCTYPE html><html><head></head><body><p>mock table</p></body></html>")
     (define test-rows '())
     (define table-creator-mock (mock #:behavior (const (txexpr 'p empty (list "mock table")))))
     (check-equal? (html-report test-rows #:table-creator table-creator-mock) result))
@@ -28,7 +29,7 @@
     (html-report test-rows #:table-creator table-creator-mock)
     (check-mock-called-with?  table-creator-mock (arguments test-rows)))
   (test-case "html-report produces a report for the table"
-    (define result "<html><head></head><body><table><tr><th>Key</th><th>Rule</th></tr><tr><td>1</td><td><ul class=\"rule-list\"><li>email address</li><li>AU phone number</li></ul></td></tr><tr><td>2</td><td><ul class=\"rule-list\"><li>email address</li><li>AU phone number</li></ul></td></tr></table></body></html>")
+    (define result "<!DOCTYPE html><html><head></head><body><table><tr><th>Key</th><th>Rule</th></tr><tr><td>1</td><td><ul class=\"rule-list\"><li>email address</li><li>AU phone number</li></ul></td></tr><tr><td>2</td><td><ul class=\"rule-list\"><li>email address</li><li>AU phone number</li></ul></td></tr></table></body></html>")
     (define test-rows (list  (examined-row (hash "key" '(1))
                                            '((1 "email address") (1 "AU phone number")))
                              (examined-row (hash "key" '(2))
