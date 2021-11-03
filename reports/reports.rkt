@@ -7,10 +7,10 @@
   (require mock)
   (require mock/rackunit))
 
-(provide html-report)
+(provide html-table-report)
 
-(define (html-report rows #:table-creator [row-table row-table])
-  (define wrapper (txexpr* 'html '((lang "en") (class "no-js"))
+(define (html-table-report rows #:table-creator [row-table row-table])
+  (define report (txexpr* 'html '((lang "en") (class "no-js"))
                            (txexpr* 'head empty
                                     (txexpr 'meta '((charset "UTF-8")))
                                     (txexpr 'meta '((name "viewport")
@@ -19,26 +19,26 @@
                                     (txexpr 'meta '((name "description")
                                                     (content "Report on PII discovered in this database"))))
                            (txexpr* 'body empty (row-table rows))))
-  (string-append "<!DOCTYPE html>" (xexpr->html wrapper)))
+  (string-append "<!DOCTYPE html>" (xexpr->html report)))
 
 (module+ test
-  (test-case "html-report produces a HTML report of the run"
+  (test-case "html-table-report produces a HTML report of the run"
     (define result "<!DOCTYPE html><html lang=\"en\" class=\"no-js\"><head><meta charset=\"UTF-8\"/><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"/><title>PII Spider Report</title><meta name=\"description\" content=\"Report on PII discovered in this database\"/></head><body><p>mock table</p></body></html>")
     (define test-rows '())
     (define table-creator-mock (mock #:behavior (const (txexpr 'p empty (list "mock table")))))
-    (check-equal? (html-report test-rows #:table-creator table-creator-mock) result))
-  (test-case "html-report calls the table-creator"
+    (check-equal? (html-table-report test-rows #:table-creator table-creator-mock) result))
+  (test-case "html-table-report calls the table-creator"
     (define test-rows '())
     (define table-creator-mock (mock #:behavior (const (txexpr 'p empty (list "mock table")))))
-    (html-report test-rows #:table-creator table-creator-mock)
+    (html-table-report test-rows #:table-creator table-creator-mock)
     (check-mock-called-with?  table-creator-mock (arguments test-rows)))
-  (test-case "html-report produces a report for the table"
+  (test-case "html-table-report produces a report for the table"
     (define result "<!DOCTYPE html><html lang=\"en\" class=\"no-js\"><head><meta charset=\"UTF-8\"/><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"/><title>PII Spider Report</title><meta name=\"description\" content=\"Report on PII discovered in this database\"/></head><body><table><caption>Results for table</caption><thead><tr><th>Key</th><th>Rule</th></tr></thead><tbody><tr><td>1</td><td><ul class=\"rule-list\"><li>email address</li><li>AU phone number</li></ul></td></tr><tr><td>2</td><td><ul class=\"rule-list\"><li>email address</li><li>AU phone number</li></ul></td></tr></tbody></table></body></html>")
     (define test-rows (list  (examined-row (hash "key" '(1))
                                            '((1 "email address") (1 "AU phone number")))
                              (examined-row (hash "key" '(2))
                                            '((1 "email address") (1 "AU phone number"))))) 
-    (check-equal? (html-report test-rows) result)))
+    (check-equal? (html-table-report test-rows) result)))
 
 (define (row-table rows #:row-creator [create-data-table-rows create-data-table-rows])
   (txexpr* 'table empty
