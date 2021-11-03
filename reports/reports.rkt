@@ -9,8 +9,6 @@
 
 (provide html-report)
 
-;; TODO deal with empty results
-;; TODO deal with multiple tables
 (define (html-report rows #:table-creator [row-table row-table])
   (define wrapper (txexpr* 'html '((lang "en") (class "no-js"))
                            (txexpr* 'head empty
