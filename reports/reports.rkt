@@ -40,11 +40,11 @@
                                            '((1 "email address") (1 "AU phone number"))))) 
     (check-equal? (html-table-report test-rows) result)))
 
-(define (row-table rows #:row-creator [create-data-table-rows create-data-table-rows])
+(define (row-table rows #:row-creator [row-table-body row-table-body])
   (txexpr* 'table empty
            (txexpr 'caption empty '("Results for table"))
-           (table-header-row)
-           (create-data-table-rows rows)))
+           (row-table-header)
+           (row-table-body rows)))
 
 (module+ test
   (test-case "row-table will create a table presenting an empty result"
@@ -65,7 +65,7 @@
     (row-table test-rows #:row-creator row-creator-mock)
     (check-mock-called-with?  row-creator-mock (arguments test-rows))))
 
-(define (table-header-row)
+(define (row-table-header)
   (txexpr* 'thead
            empty
            (txexpr* 'tr empty
@@ -75,9 +75,9 @@
 (module+ test
   (test-case "row-table will create a table presenting the result"
     (define result "<thead><tr><th>Key</th><th>Rule</th></tr></thead>")
-    (check-equal? (xexpr->html (table-header-row)) result)))
+    (check-equal? (xexpr->html (row-table-header)) result)))
 
-(define (create-data-table-rows rows)
+(define (row-table-body rows)
   (if (empty? rows)
 
       (txexpr* 'tbody empty
@@ -92,27 +92,27 @@
                                             (rule-list (examined-row-results row))))) rows))))
 
 (module+ test
-  (test-case "create-data-table-rows will return a defult message if the row list is empty"
+  (test-case "row-table-body will return a defult message if the row list is empty"
     (define result '(tbody (tr (td "No rows were examined"))))
     (define no-rows empty)
-    (check-equal? (create-data-table-rows no-rows) result))
-  (test-case "create-data-table-rows will create a data row with a single examined-row"
+    (check-equal? (row-table-body no-rows) result))
+  (test-case "row-table-body will create a data row with a single examined-row"
     (define result '(tbody (tr (td "1")
                                (td (ul ((class "rule-list"))
                                        (li "email address")
                                        (li "AU phone number"))))))
     (define test-row (list (examined-row (hash "key" '(1))
                                          '((1 "email address") (1 "AU phone number")))))
-    (check-equal? (create-data-table-rows test-row) result))
-  (test-case "create-data-table-rows will create a data row with a complex key"
+    (check-equal? (row-table-body test-row) result))
+  (test-case "row-table-body will create a data row with a complex key"
     (define result '(tbody (tr (td "1, 2, three")
                                (td (ul ((class "rule-list"))
                                        (li "email address")
                                        (li "AU phone number"))))))
     (define test-row (list (examined-row (hash "key" '(1 2 "three"))
                                          '((1 "email address") (1 "AU phone number")))))
-    (check-equal? (create-data-table-rows test-row) result))
-  (test-case "create-data-table-rows will create multiple data rows with multiple examined-rows"
+    (check-equal? (row-table-body test-row) result))
+  (test-case "row-table-body will create multiple data rows with multiple examined-rows"
     (define result  '(tbody
                       (tr (td "1") (td (ul ((class "rule-list"))
                                            (li "email address")
@@ -124,7 +124,7 @@
                                            '((1 "email address") (1 "AU phone number")))
                              (examined-row (hash "key" '(2))
                                            '((1 "email address") (1 "AU phone number")))))
-    (check-equal? (create-data-table-rows test-rows) result)))
+    (check-equal? (row-table-body test-rows) result)))
 
 (define (key->string key)
   (string-join (map (lambda (part-key) (format "~a" part-key)) key) ", "))
