@@ -1,7 +1,7 @@
 #lang racket
 
 (require db)
-(require "examined-rows.rkt")
+(require "structs.rkt")
 (require (prefix-in rules: "pii/rules.rkt"))
 
 (provide sniffer)

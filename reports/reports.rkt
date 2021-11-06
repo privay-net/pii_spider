@@ -1,6 +1,6 @@
 #lang racket
 (require txexpr)
-(require "../examined-rows.rkt")
+(require "../structs.rkt")
 
 (module+ test
   (require rackunit)
