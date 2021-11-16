@@ -1,6 +1,7 @@
 #lang racket
 
 (require db)
+(require gregor)
 (require "structs.rkt")
 (require (prefix-in rules: "pii/rules.rkt"))
 
@@ -62,7 +63,11 @@
                                                        #:user "robert"))))
 
 (define (examine-table connection table-name #:query-function [query-rows query-rows])
-  ;; use a better query and detect the primary key
+  ;; TODO detect a difference between the count I get from the DB when starting versus the count
+  ;; I get later
+  (define row-count (estimate-row-count pgc table-name))
+  (define table-data (initialise-metadata table-name row-count))
+  ;; TODO use a better query and detect the primary key
   (let ([query (string-append "select * from \"" table-name "\";")])
     (query-rows connection query)))
 
@@ -77,6 +82,33 @@
     (define one-row-result '(#(1 "user@example.com")))
     (define query-mock (mock #:behavior (const one-row-result)))
     (check-eq? (examine-table connector-mock "foo" #:query-function query-mock) one-row-result)))
+
+(define (estimate-row-count connection table-name #:query-function [query-value query-value])
+    (let ([query (string-append "select count(*) from \"" table-name "\";")])
+      (query-value pgc query)))
+
+(module+ test
+  ;;; TODO deal with table not existing error  
+  (test-case "estimate-row-count exectutes a query with the required arguments"
+    (define query-mock (mock #:behavior (const test-connection)))
+    (estimate-row-count connector-mock "foo" #:query-function query-mock)
+    (check-mock-called-with? query-mock (arguments connector-mock "select count(*) from \"foo\";")))
+  
+  (test-case "estimate-row-count returns a count of the rows"
+    (define one-row-result 1)
+    (define query-mock (mock #:behavior (const one-row-result)))
+    (check-eq? (estimate-row-count connector-mock "foo" #:query-function query-mock) one-row-result)))
+
+(define (initialise-metadata table-name [row-count 0])
+  (examined-table table-name now now row-count empty))
+
+(module+ test
+  (test-case "initialise-metadata returns an examined-table"
+    (check-true (examined-table? (initialise-metadata "test"))))
+  (test-case "initialise-metadata returns an examined-table with the table name set"
+    (check-equal? (examined-table-name (initialise-metadata "test")) "test"))
+  (test-case "initialise-metadata returns an examined-table with the table name set"
+    (check-equal? (examined-table-row-count (initialise-metadata "test")) 0)))
 
 (define (examine-rows rows rules #:examiner-function [sniff-for-pii sniff-for-pii])
   (map (lambda (row)
@@ -141,7 +173,10 @@
     (define rule-mock (mock #:behavior (const '("email address" #f))))
     (check-equal? (cadr (sniff-for-pii row-result rule-mock)) "email address")))
 
-
+(define pgc (initialise-connection))
+(define rows (examine-table pgc "users"))
+(define rules (list rules:email rules:au-phone-number))
+(examine-rows rows rules)
 
 
 

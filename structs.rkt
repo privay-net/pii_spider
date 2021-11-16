@@ -2,7 +2,8 @@
 
 (require racket/struct)
 
-(provide examined-row examined-row-id examined-row-results examined-table examined-table-name)
+(provide examined-row examined-row-id examined-row-results
+         examined-table examined-table? examined-table-name examined-table-row-count)
 
 (struct examined-row (id results)
   #:methods gen:custom-write
