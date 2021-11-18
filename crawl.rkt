@@ -5,8 +5,8 @@
 (require "structs.rkt")
 (require (prefix-in rules: "pii/rules.rkt"))
 
-(provide sniffer)
-(define (sniffer url #:connector [initialise-connection initialise-connection]
+(provide crawler)
+(define (crawler url #:connector [initialise-connection initialise-connection]
                  #:list-tables [list-tables list-tables])
   ; connect to the db
   (define pgc (initialise-connection))
@@ -36,14 +36,14 @@
   
   
   ;;; TODO make this a big old omnibus test
-  (test-case "sniffer returns a report structure"
+  (test-case "crawler returns a report structure"
     (check-eq?
-     (sniffer "not://a.url/test"
+     (crawler "not://a.url/test"
               #:connector connector-mock
               #:list-tables list-tables-mock) "not://a.url/test"))
   
-  (test-case "sniffer compiles a list of tables to examine"
-    (sniffer "not://a.url/test" #:connector connector-mock #:list-tables list-tables-mock)
+  (test-case "crawler compiles a list of tables to examine"
+    (crawler "not://a.url/test" #:connector connector-mock #:list-tables list-tables-mock)
     (check-mock-called-with? list-tables-mock (arguments test-connection))))
 
 (define (initialise-connection #:connector [postgresql-connect postgresql-connect])
@@ -110,26 +110,26 @@
   (test-case "initialise-metadata returns an examined-table with the table name set"
     (check-equal? (examined-table-row-count (initialise-metadata "test")) 0)))
 
-(define (examine-rows rows rules #:examiner-function [sniff-for-pii sniff-for-pii])
+(define (examine-rows rows rules #:examiner-function [crawl-for-pii crawl-for-pii])
   (map (lambda (row)
          (examined-row (extract-primary-key row)
                        (map (lambda (rule)
-                              (sniff-for-pii row rule))
+                              (crawl-for-pii row rule))
                             rules))) rows))
 
 (module+ test
-  (test-case "examine-rows applies sniff-for-pii to each row and rule"
-    (define sniff-for-pii-mock (mock #:behavior (const (void)) ))
+  (test-case "examine-rows applies crawl-for-pii to each row and rule"
+    (define crawl-for-pii-mock (mock #:behavior (const (void)) ))
     (define rows '(#(1 "robert@test.com" "0412345678" "Robert")
                    #(2 "rob@test.com" "0412345679" "Rob")))
     (define rule1-mock (mock #:behavior (const (void)) ))
     (define rule2-mock (mock #:behavior (const (void)) ))
     (define rules (list rule1-mock rule2-mock))
-    (examine-rows rows rules #:examiner-function sniff-for-pii-mock)
-    (check-mock-called-with? sniff-for-pii-mock (arguments (car rows) (car rules)))
-    (check-mock-called-with? sniff-for-pii-mock (arguments (cadr rows) (car rules)))
-    (check-mock-called-with? sniff-for-pii-mock (arguments (car rows) (cadr rules)))
-    (check-mock-called-with? sniff-for-pii-mock (arguments (cadr rows) (cadr rules)))))
+    (examine-rows rows rules #:examiner-function crawl-for-pii-mock)
+    (check-mock-called-with? crawl-for-pii-mock (arguments (car rows) (car rules)))
+    (check-mock-called-with? crawl-for-pii-mock (arguments (cadr rows) (car rules)))
+    (check-mock-called-with? crawl-for-pii-mock (arguments (car rows) (cadr rules)))
+    (check-mock-called-with? crawl-for-pii-mock (arguments (cadr rows) (cadr rules)))))
 
 (define (extract-primary-key row [primary-key-locations '(0)])
   (hash "key" 
@@ -146,7 +146,7 @@
     (define row (list->vector (append key-fields '("Robert"))))
     (check-equal? (extract-primary-key row target-keys) (hash "key" key-fields))))
 
-(define (sniff-for-pii row rule)
+(define (crawl-for-pii row rule)
   (let ([row-results  (vector-map rule row)])
     (foldl (lambda (column-result result)
              (if (cadr column-result)
@@ -158,20 +158,20 @@
 (module+ test
   (define row-result #(1 "user@example.com"))
   
-  (test-case "sniff-for-pii run rules over each row looking for PII"
+  (test-case "crawl-for-pii run rules over each row looking for PII"
     (define rule-mock (mock #:behavior (const '("email adddress" #f))))
-    (sniff-for-pii row-result rule-mock)
+    (crawl-for-pii row-result rule-mock)
     (check-mock-called-with? rule-mock (arguments (vector-ref row-result 0)))
     (check-mock-called-with? rule-mock (arguments (vector-ref row-result 1))))
-  (test-case "sniff-for-pii returns a count of the PII instances detected"
+  (test-case "crawl-for-pii returns a count of the PII instances detected"
     (define rule-mock (mock #:behavior (const '("email address" #t))))
-    (check-equal? (car (sniff-for-pii row-result rule-mock)) 2))
-  (test-case "sniff-for-pii returns the name of the rule when PII is detected"
+    (check-equal? (car (crawl-for-pii row-result rule-mock)) 2))
+  (test-case "crawl-for-pii returns the name of the rule when PII is detected"
     (define rule-mock (mock #:behavior (const '("email address" #t))))
-    (check-equal? (cadr (sniff-for-pii row-result rule-mock)) "email address"))
-  (test-case "sniff-for-pii returns an count of 0 when no PII is detected"
+    (check-equal? (cadr (crawl-for-pii row-result rule-mock)) "email address"))
+  (test-case "crawl-for-pii returns an count of 0 when no PII is detected"
     (define rule-mock (mock #:behavior (const '("email address" #f))))
-    (check-equal? (cadr (sniff-for-pii row-result rule-mock)) "email address")))
+    (check-equal? (cadr (crawl-for-pii row-result rule-mock)) "email address")))
 
 (define pgc (initialise-connection))
 (define rows (examine-table pgc "users"))

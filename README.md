@@ -1,3 +1,3 @@
-pii_sniffer
+pii_spider
 ===========
 README text here.

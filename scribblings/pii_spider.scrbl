@@ -1,10 +1,10 @@
 #lang scribble/manual
-@require[@for-label[pii_sniffer
+@require[@for-label[pii_spider
                     racket/base]]
 
-@title{pii_sniffer}
+@title{pii_spider}
 @author{robertpostill}
 
-@defmodule[pii_sniffer]
+@defmodule[pii_spider]
 
 Package Description Here

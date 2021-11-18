@@ -1,5 +1,5 @@
 #lang racket/base
-(require "sniff.rkt")
+(require "crawl.rkt")
 
 (module+ test
   (require rackunit))
@@ -42,8 +42,8 @@
   (require racket/cmdline)
   (define what (box "world"))
   (command-line
-    #:program "pii_sniffer"
+    #:program "pii_spider"
     #:once-each
     [("-d" "--database") database "the database URL to connect to" (set-box! what database)]
     #:args ()
-    (sniffer (unbox what))))
+    (crawler (unbox what))))
