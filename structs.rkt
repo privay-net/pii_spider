@@ -3,7 +3,8 @@
 (require racket/struct)
 
 (provide examined-row examined-row-id examined-row-results
-         examined-table examined-table? examined-table-name examined-table-row-count)
+         examined-table examined-table? examined-table-name examined-table-row-count
+         examined-table-results examined-table-start-time examined-table-end-time)
 
 (struct examined-row (id results)
   #:methods gen:custom-write
@@ -19,4 +20,4 @@
       (lambda (obj) 'examined-table)
       (lambda (obj) (list (examined-table-name obj)
                           (examined-table-row-count obj)
-                          (examined-table-end-time)))))]) 
+                          (examined-table-end-time obj)))))]) 

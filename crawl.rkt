@@ -62,32 +62,32 @@
                                                        #:password "bhujasample4$"
                                                        #:user "robert"))))
 
-(define (examine-table connection table-name #:query-function [query-rows query-rows] #:row-estimate [estimate-row-count estimate-row-count])
+(define (examine-table connection table-name #:row-function [retrieve-rows retrieve-rows] #:row-estimate [estimate-row-count estimate-row-count])
   ;; TODO detect a difference between the count I get from the DB when starting versus the count
   ;; I get later
+  (define start-time (now))
   (define row-count (estimate-row-count connection table-name))
-  (define table-data (initialise-metadata table-name row-count))
-  ;; TODO use a better query and detect the primary key
-  (let ([query (string-append "select * from \"" table-name "\";")])
-    (query-rows connection query)))
+  (define rows (retrieve-rows connection table-name))
+  (initialise-metadata table-name #:row-count row-count #:results rows))
 
 (module+ test
   (define row-count-mock (mock #:behavior (const 1)))
-  (define query-mock (mock #:behavior (const test-connection)))
+  (define one-row-result '(#(1 "user@example.com")))
+  (define row-mock (mock #:behavior (const one-row-result)))
   
   ;;; TODO deal with table not existing error  
-  (test-case "examine-table exectutes a query with the required arguments"
-    (examine-table connector-mock "foo" #:query-function query-mock #:row-estimate row-count-mock)
-    (check-mock-called-with? query-mock (arguments connector-mock "select * from \"foo\";")))
+  (test-case "examine-table exectutes a row query with the required arguments"
+    (examine-table connector-mock "foo" #:row-function row-mock #:row-estimate row-count-mock)
+    (check-mock-called-with? row-mock (arguments connector-mock "foo")))
 
   (test-case "examine-table checks the row count with the required arguments"
-    (examine-table connector-mock "foo" #:query-function query-mock #:row-estimate row-count-mock)
+    (examine-table connector-mock "foo" #:row-function row-mock #:row-estimate row-count-mock)
     (check-mock-called-with? row-count-mock (arguments connector-mock "foo")))
   
-  (test-case "examine-table returns a list of rows"
-    (define one-row-result '(#(1 "user@example.com")))
-    (define query-mock (mock #:behavior (const one-row-result)))
-    (check-eq? (examine-table connector-mock "foo" #:query-function query-mock #:row-estimate row-count-mock) one-row-result)))
+  (test-case "examine-table returns an examined-table struct with appropriate values"
+    (define result (examine-table connector-mock "foo" #:row-function row-mock #:row-estimate row-count-mock))
+    (check-equal? (examined-table-results result) one-row-result)
+    (check-equal? (examined-table-row-count result) 1)))
 
 (define (estimate-row-count connection table-name #:query-function [query-value query-value])
     (let ([query (string-append "select count(*) from \"" table-name "\";")])
@@ -107,16 +107,42 @@
     (define query-mock (mock #:behavior (const one-row-result)))
     (check-eq? (estimate-row-count connector-mock "foo" #:query-function query-mock) one-row-result)))
 
-(define (initialise-metadata table-name [row-count 0])
-  (examined-table table-name now now row-count empty))
+(define (retrieve-rows connection table-name #:query-function [query-rows query-rows])
+  (let ([query (string-append "select * from \"" table-name "\";")])
+    (query-rows connection query)))
+
+(module+ test
+  (define query-mock (mock #:behavior (const one-row-result)))
+  
+  (test-case "retreive-rows executes a query with the correct arguments"
+    (retrieve-rows connector-mock "bar" #:query-function query-mock)
+    (check-mock-called-with? query-mock (arguments connector-mock "select * from \"bar\";")))
+  (test-case "retrieve-rows returns a list of rows to examine"
+    (define one-row-result '(#(1 "user@example.com")))
+    (check-equal? (retrieve-rows connector-mock "baz" #:query-function query-mock) one-row-result)))
+
+(define (initialise-metadata table-name #:start-time [start-time (now)] #:row-count [row-count 0] #:results [results empty])
+  (examined-table table-name start-time (now) row-count results))
 
 (module+ test
   (test-case "initialise-metadata returns an examined-table"
     (check-true (examined-table? (initialise-metadata "test"))))
   (test-case "initialise-metadata returns an examined-table with the table name set"
     (check-equal? (examined-table-name (initialise-metadata "test")) "test"))
-  (test-case "initialise-metadata returns an examined-table with the table name set"
-    (check-equal? (examined-table-row-count (initialise-metadata "test")) 0)))
+  (test-case "initialise-metadata returns an examined-table with the table row-count set to 0 by default"
+    (check-equal? (examined-table-row-count (initialise-metadata "test")) 0))
+  (test-case "initialise-metadata returns an examined-table with the table row-count set if overriden"
+    (check-equal? (examined-table-row-count (initialise-metadata "test" #:row-count 1)) 1))
+  (test-case "initialise-metadata returns an examined-table with the results set to empty by default"
+    (check-equal? (examined-table-results (initialise-metadata "test")) empty))
+  (test-case "initialise-metadata returns an examined-table with the results set if overriden"
+    (check-equal? (examined-table-results (initialise-metadata "test" #:results '(examined-rows))) '(examined-rows)))
+  (test-case "initialise-metadata returns an examined-table with the start-time set to now by default"
+    ; this check only works becuase of computers are so fast. I could mock now but that seems excessive
+    (check-equal? (seconds-between (examined-table-start-time (initialise-metadata "test")) (now)) 0)) 
+  (test-case "initialise-metadata returns an examined-table with the start-time set if overriden"
+    (define test-start-time (datetime 2000))
+    (check-equal? (examined-table-start-time (initialise-metadata "test" #:start-time test-start-time)) test-start-time)))
 
 (define (examine-rows rows rules #:examiner-function [crawl-for-pii crawl-for-pii])
   (map (lambda (row)
@@ -184,7 +210,7 @@
 (define pgc (initialise-connection))
 (define rows (examine-table pgc "users"))
 (define rules (list rules:email rules:au-phone-number))
-(examine-rows rows rules)
+(examine-rows (examined-table-results rows) rules)
 
 
 
