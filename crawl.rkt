@@ -12,7 +12,7 @@
   (define pgc (initialise-connection))
 
   ; find all the tables
-  (list-tables pgc)
+  (define tables (list-tables pgc))
   ; deal with taking some small number of rows vs scanning the entire thing
   ; grab rows of data from each table
   ;; (define rows (examine-table pgc "users"))
@@ -21,6 +21,8 @@
   ; look in each row for pii data
   ; return pii rows
   ;; (examine-rows rows rules)
+  ;;  write out results to file
+  ;;  Note everything after tables should be parallel-ised to make it faster
   ; return report
   url)
 
