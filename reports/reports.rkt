@@ -1,5 +1,6 @@
 #lang racket
 (require txexpr)
+(require gregor)
 (require "../structs.rkt")
 
 (module+ test
@@ -9,7 +10,7 @@
 
 (provide html-table-report)
 
-(define (html-table-report rows #:table-creator [row-table row-table])
+(define (html-table-report table-results #:table-creator [row-table row-table] #:summary-creator [results-summary results-summary])
   (define report (txexpr* 'html '((lang "en") (class "no-js"))
                            (txexpr* 'head empty
                                     (txexpr 'meta '((charset "UTF-8")))
@@ -18,27 +19,53 @@
                                     (txexpr 'title empty '("PII Spider Report"))
                                     (txexpr 'meta '((name "description")
                                                     (content "Report on PII discovered in this database"))))
-                           (txexpr* 'body empty (row-table rows))))
+                           (txexpr* 'body empty
+                                    (results-summary table-results)
+                                    (row-table (examined-table-results table-results)))))
   (string-append "<!DOCTYPE html>" (xexpr->html report)))
 
 (module+ test
+  (define test-no-rows '())
+  (define test-two-rows (list  (examined-row (hash "key" '(1))
+                                             '((1 "email address") (1 "AU phone number")))
+                               (examined-row (hash "key" '(2))
+                                             '((1 "email address") (1 "AU phone number"))))) 
+  (define start-time (moment 1970))
+  (define end-time (moment 2000 02 28 13 14 30))
+  (define test-two-record-table (examined-table "two_rows" start-time end-time 2 test-two-rows))
+  (define test-zero-record-table (examined-table "no_rows" start-time end-time 0 test-no-rows))
+  
   (test-case "html-table-report produces a HTML report of the run"
-    (define result "<!DOCTYPE html><html lang=\"en\" class=\"no-js\"><head><meta charset=\"UTF-8\"/><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"/><title>PII Spider Report</title><meta name=\"description\" content=\"Report on PII discovered in this database\"/></head><body><p>mock table</p></body></html>")
-    (define test-rows '())
+    (define result "<!DOCTYPE html><html lang=\"en\" class=\"no-js\"><head><meta charset=\"UTF-8\"/><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"/><title>PII Spider Report</title><meta name=\"description\" content=\"Report on PII discovered in this database\"/></head><body><p>mock summary</p><p>mock table</p></body></html>")
     (define table-creator-mock (mock #:behavior (const (txexpr 'p empty (list "mock table")))))
-    (check-equal? (html-table-report test-rows #:table-creator table-creator-mock) result))
+    (define summary-mock (mock #:behavior (const (txexpr 'p empty (list "mock summary")))))
+    (check-equal? (html-table-report test-zero-record-table #:table-creator table-creator-mock #:summary-creator summary-mock) result))
   (test-case "html-table-report calls the table-creator"
-    (define test-rows '())
     (define table-creator-mock (mock #:behavior (const (txexpr 'p empty (list "mock table")))))
-    (html-table-report test-rows #:table-creator table-creator-mock)
-    (check-mock-called-with?  table-creator-mock (arguments test-rows)))
+    (html-table-report test-zero-record-table #:table-creator table-creator-mock)
+    (check-mock-called-with?  table-creator-mock (arguments (examined-table-results test-zero-record-table))))
   (test-case "html-table-report produces a report for the table"
-    (define result "<!DOCTYPE html><html lang=\"en\" class=\"no-js\"><head><meta charset=\"UTF-8\"/><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"/><title>PII Spider Report</title><meta name=\"description\" content=\"Report on PII discovered in this database\"/></head><body><table><caption>Results for table</caption><thead><tr><th>Key</th><th>Rule</th></tr></thead><tbody><tr><td>1</td><td><ul class=\"rule-list\"><li>email address</li><li>AU phone number</li></ul></td></tr><tr><td>2</td><td><ul class=\"rule-list\"><li>email address</li><li>AU phone number</li></ul></td></tr></tbody></table></body></html>")
-    (define test-rows (list  (examined-row (hash "key" '(1))
-                                           '((1 "email address") (1 "AU phone number")))
-                             (examined-row (hash "key" '(2))
-                                           '((1 "email address") (1 "AU phone number"))))) 
-    (check-equal? (html-table-report test-rows) result)))
+    (define result "<!DOCTYPE html><html lang=\"en\" class=\"no-js\"><head><meta charset=\"UTF-8\"/><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"/><title>PII Spider Report</title><meta name=\"description\" content=\"Report on PII discovered in this database\"/></head><body><div><h1>Results for table two_rows</h1><table><tr><td>Start Time:</td><td>1970-01-01 00:00:00 +1000</td></tr><tr><td>End Time:</td><td>2000-02-28 13:14:00 +1100</td></tr><tr><td>Rows Examined:</td><td>2</td></tr></table></div><table><caption>Results for table</caption><thead><tr><th>Key</th><th>Rule</th></tr></thead><tbody><tr><td>1</td><td><ul class=\"rule-list\"><li>email address</li><li>AU phone number</li></ul></td></tr><tr><td>2</td><td><ul class=\"rule-list\"><li>email address</li><li>AU phone number</li></ul></td></tr></tbody></table></body></html>")
+    (check-equal? (html-table-report test-two-record-table) result)))
+
+(define (results-summary results)
+  (txexpr* 'div empty
+           (txexpr 'h1 empty (list (string-append "Results for table " (examined-table-name results))))
+           (txexpr* 'table empty
+                    (txexpr* 'tr empty
+                             (txexpr 'td empty '("Start Time:"))
+                             (txexpr 'td empty (list (~t (examined-table-start-time results) "yyyy-MM-dd HH:mm:SS Z"))))
+                    (txexpr* 'tr empty
+                             (txexpr 'td empty '("End Time:"))
+                             (txexpr 'td empty (list (~t (examined-table-end-time results) "yyyy-MM-dd HH:mm:SS Z"))))
+                    (txexpr* 'tr empty
+                             (txexpr 'td empty '("Rows Examined:"))
+                             (txexpr 'td empty (list (number->string (examined-table-row-count results))))))))
+
+(module+ test
+  (test-case "results-summary will create a div summarising the results of the table"
+    (define result "<div><h1>Results for table no_rows</h1><table><tr><td>Start Time:</td><td>1970-01-01 00:00:00 +1000</td></tr><tr><td>End Time:</td><td>2000-02-28 13:14:00 +1100</td></tr><tr><td>Rows Examined:</td><td>0</td></tr></table></div>")
+    (check-equal? (xexpr->html (results-summary test-zero-record-table)) result)))
 
 (define (row-table rows #:row-creator [row-table-body row-table-body])
   (txexpr* 'table empty
@@ -51,9 +78,9 @@
     (define result "<table><caption>Results for table</caption><thead><tr><th>Key</th><th>Rule</th></tr></thead><tbody><tr><td>No rows were examined</td></tr></tbody></table>")
     (define test-row empty)
     (check-equal? (xexpr->html (row-table test-row)) result))
-   (test-case "row-table will create a table presenting the result"
-     (define result "<table><caption>Results for table</caption><thead><tr><th>Key</th><th>Rule</th></tr></thead><tbody><tr><td>1</td><td><ul class=\"rule-list\"><li>email address</li><li>AU phone number</li></ul></td></tr><tr><td>2</td><td><ul class=\"rule-list\"><li>email address</li><li>AU phone number</li></ul></td></tr></tbody></table>")
-  (define test-rows (list  (examined-row (hash "key" '(1))
+  (test-case "row-table will create a table presenting the result"
+    (define result "<table><caption>Results for table</caption><thead><tr><th>Key</th><th>Rule</th></tr></thead><tbody><tr><td>1</td><td><ul class=\"rule-list\"><li>email address</li><li>AU phone number</li></ul></td></tr><tr><td>2</td><td><ul class=\"rule-list\"><li>email address</li><li>AU phone number</li></ul></td></tr></tbody></table>")
+    (define test-rows (list  (examined-row (hash "key" '(1))
                                            '((1 "email address") (1 "AU phone number")))
                              (examined-row (hash "key" '(2))
                                            '((1 "email address") (1 "AU phone number")))))
