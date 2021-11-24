@@ -1,0 +1,23 @@
+* For v0.1
+** write the table results out to a file 
+** create an aggregated report for all tables
+** use koyo url parsing
+** write error handling
+** connect to different databases
+
+* After v0.1
+** run this out of a docker container
+** Log progress to STDOUT
+
+* After v0.2
+** Write out the results to file for JSON processing
+** Send the results to a webapp
+** Need to make a progress reporting web app.
+** support mysql
+** profile speed over:
+*** long tables (5k, 50k, 500k rows)
+*** wide tables (10, 1000, 10000 columns)
+*** many rules (1, 100, 1000 rules)
+
+
+
