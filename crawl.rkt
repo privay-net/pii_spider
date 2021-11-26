@@ -64,13 +64,15 @@
                                                        #:password "bhujasample4$"
                                                        #:user "robert"))))
 
-(define (examine-table connection table-name #:row-function [retrieve-rows retrieve-rows] #:row-estimate [estimate-row-count estimate-row-count])
+(define (examine-table connection table-name
+                       #:row-function [retrieve-rows retrieve-rows]
+                       #:row-estimate [estimate-row-count estimate-row-count])
   ;; TODO detect a difference between the count I get from the DB when starting versus the count
   ;; I get later
   (define start-time (now))
   (define row-count (estimate-row-count connection table-name))
   (define rows (retrieve-rows connection table-name))
-  (initialise-metadata table-name #:row-count row-count #:results rows))
+  (initialise-metadata table-name #:start-time start-time #:row-count row-count #:results rows))
 
 (module+ test
   (define row-count-mock (mock #:behavior (const 1)))
@@ -123,27 +125,39 @@
     (define one-row-result '(#(1 "user@example.com")))
     (check-equal? (retrieve-rows connector-mock "baz" #:query-function query-mock) one-row-result)))
 
-(define (initialise-metadata table-name #:start-time [start-time (now)] #:row-count [row-count 0] #:results [results empty])
-  (examined-table table-name start-time (now) row-count results))
+(define (initialise-metadata table-name
+                             #:start-time [start-time (now)]
+                             #:row-count [row-count 0]
+                             #:source-rows [source-rows empty]
+                             #:results [results empty])
+  (examined-table table-name start-time (now) row-count source-rows results))
 
 (module+ test
   (test-case "initialise-metadata returns an examined-table"
     (check-true (examined-table? (initialise-metadata "test"))))
-  (test-case "initialise-metadata returns an examined-table with the table name set"
+  (test-case "initialise-metadata returns with the table name set"
     (check-equal? (examined-table-name (initialise-metadata "test")) "test"))
-  (test-case "initialise-metadata returns an examined-table with the table row-count set to 0 by default"
+  (test-case "initialise-metadata returns with the table row-count set to 0 by default"
     (check-equal? (examined-table-row-count (initialise-metadata "test")) 0))
-  (test-case "initialise-metadata returns an examined-table with the table row-count set if overriden"
+  (test-case "initialise-metadata returns with the table row-count set if overriden"
     (check-equal? (examined-table-row-count (initialise-metadata "test" #:row-count 1)) 1))
-  (test-case "initialise-metadata returns an examined-table with the results set to empty by default"
+  (test-case "initialise-metadata returns with the results set to empty by default"
     (check-equal? (examined-table-results (initialise-metadata "test")) empty))
-  (test-case "initialise-metadata returns an examined-table with the results set if overriden"
-    (check-equal? (examined-table-results (initialise-metadata "test" #:results '(examined-rows))) '(examined-rows)))
-  (test-case "initialise-metadata returns an examined-table with the start-time set to now by default"
+  (test-case "initialise-metadata returns with the results set if overriden"
+    (check-equal? (examined-table-results
+                   (initialise-metadata "test" #:results '(examined-rows)))
+                  '(examined-rows)))
+  (test-case "initialise-metadata returns with the source rows set to empty by default"
+    (check-equal? (examined-table-source-rows (initialise-metadata "test")) empty))
+  (test-case "initialise-metadata returns with the source rows set if overriden"
+    (check-equal? (examined-table-source-rows
+                   (initialise-metadata "test" #:source-rows '(source-rows)))
+                  '(source-rows)))
+  (test-case "initialise-metadata returns with the start-time set to now by default"
     ; this check only works becuase of computers are so fast. I could mock now but that seems excessive
     (check-equal? (seconds-between (examined-table-start-time (initialise-metadata "test")) (now)) 0)) 
-  (test-case "initialise-metadata returns an examined-table with the start-time set if overriden"
-    (define test-start-time (datetime 2000))
+  (test-case "initialise-metadata returns with the start-time set if overriden"
+    (define test-start-time (moment 2000))
     (check-equal? (examined-table-start-time (initialise-metadata "test" #:start-time test-start-time)) test-start-time)))
 
 (define (examine-rows rows rules #:examiner-function [crawl-for-pii crawl-for-pii])
@@ -212,7 +226,10 @@
 (define pgc (initialise-connection))
 (define rows (examine-table pgc "users"))
 (define rules (list rules:email rules:au-phone-number))
-(examine-rows (examined-table-results rows) rules)
+(define results (examine-rows (examined-table-source-rows rows) rules))
+results
+;; TODO fix the struct generation so source-rows go in source rows and reults go in result rows
+;; (define report (html-table-report results) )
 
 
 
