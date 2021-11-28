@@ -1,11 +1,12 @@
 * For v0.1
 ** write the table results out to a file 
 ** create an aggregated report for all tables
-** use koyo url parsing
 ** write error handling
 ** connect to different databases
+** log messages
 
 * After v0.1
+** use koyo url parsing
 ** run this out of a docker container
 ** Log progress to STDOUT
 
@@ -18,6 +19,7 @@
 *** long tables (5k, 50k, 500k rows)
 *** wide tables (10, 1000, 10000 columns)
 *** many rules (1, 100, 1000 rules)
+** Score each kind of result (e.g. CC number 100, email 10)
 
 
 
