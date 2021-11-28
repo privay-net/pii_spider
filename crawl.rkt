@@ -7,6 +7,7 @@
 (require "reports/reports.rkt")
 
 (provide crawler)
+
 (define (crawler url #:connector [initialise-connection initialise-connection]
                  #:list-tables [list-tables list-tables])
   ; connect to the db
@@ -16,12 +17,8 @@
   (define tables (list-tables pgc))
   ; deal with taking some small number of rows vs scanning the entire thing
   ; grab rows of data from each table
-  ;; (define rows (examine-table pgc "users"))
-  ; have a set of rules applied to each set of table rows
-  (define rules (list rules:email rules:au-phone-number))
-  ; look in each row for pii data
+  (examine-table pgc "users")
   ; return pii rows
-  ;; (examine-rows rows rules)
   ;; (save-report) 
   ;;  TODO Note everything after listing tables should be parallel-ised to make it faster
   ; return report
@@ -232,7 +229,6 @@
 
 (define pgc (initialise-connection))
 (define rows (examine-table pgc "users"))
-(define rules (list rules:email rules:au-phone-number))
 rows
 ;; TODO fix the struct generation so source-rows go in source rows and reults go in result rows
 ;; (define report (html-table-report results) )
