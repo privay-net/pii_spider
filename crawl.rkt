@@ -9,7 +9,8 @@
 (provide crawler)
 
 (define (crawler url #:connector [initialise-connection initialise-connection]
-                 #:list-tables [list-tables list-tables])
+                 #:list-tables [list-tables list-tables]
+                 #:table-examiner [examine-table examine-table])
   ; connect to the db
   (define pgc (initialise-connection))
 
@@ -17,7 +18,7 @@
   (define tables (list-tables pgc))
   ; deal with taking some small number of rows vs scanning the entire thing
   ; grab rows of data from each table
-  (examine-table pgc "users")
+  (define results (examine-table pgc "users"))
   ; return pii rows
   ;; (save-report) 
   ;;  TODO Note everything after listing tables should be parallel-ised to make it faster
@@ -33,18 +34,25 @@
   (define connector-mock (mock #:behavior (const test-connection)))
   (define-opaque test-list-tables)
   (define list-tables-mock (mock #:behavior (const test-list-tables)))
-  
+  (define-opaque test-examined-table)
+  (define examine-tables-mock (mock #:behavior (const test-examined-table)))
   
   ;;; TODO make this a big old omnibus test
   (test-case "crawler returns a report structure"
     (check-eq?
      (crawler "not://a.url/test"
               #:connector connector-mock
-              #:list-tables list-tables-mock) "not://a.url/test"))
+              #:list-tables list-tables-mock
+              #:table-examiner examine-tables-mock) "not://a.url/test"))
   
   (test-case "crawler compiles a list of tables to examine"
-    (crawler "not://a.url/test" #:connector connector-mock #:list-tables list-tables-mock)
-    (check-mock-called-with? list-tables-mock (arguments test-connection))))
+    (crawler "not://a.url/test" #:connector connector-mock
+             #:list-tables list-tables-mock #:table-examiner examine-tables-mock)
+    (check-mock-called-with? list-tables-mock (arguments test-connection)))
+  (test-case "crawler examines each table"
+    (crawler "not://a.url/test" #:connector connector-mock
+             #:list-tables list-tables-mock #:table-examiner examine-tables-mock)
+    (check-mock-called-with? examine-tables-mock (arguments test-connection "users"))))
 
 (define (initialise-connection #:connector [postgresql-connect postgresql-connect])
   (postgresql-connect #:user "robert"
