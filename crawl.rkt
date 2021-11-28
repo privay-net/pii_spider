@@ -76,7 +76,7 @@
   (define rows (retrieve-rows connection table-name))
   (define rules (list rules:email rules:au-phone-number))
   (define results (examine-rows rows rules))
-  (initialise-metadata table-name #:start-time start-time #:row-count row-count #:source-rows rows #:results results))
+  (initialise-metadata table-name #:start-time start-time #:row-count row-count #:results results))
 
 (module+ test
   (define row-count-mock (mock #:behavior (const 1)))
@@ -142,9 +142,8 @@
 (define (initialise-metadata table-name
                              #:start-time [start-time (now)]
                              #:row-count [row-count 0]
-                             #:source-rows [source-rows empty]
                              #:results [results empty])
-  (examined-table table-name start-time (now) row-count source-rows results))
+  (examined-table table-name start-time (now) row-count results))
 
 (module+ test
   (test-case "initialise-metadata returns an examined-table"
@@ -161,12 +160,6 @@
     (check-equal? (examined-table-results
                    (initialise-metadata "test" #:results '(examined-rows)))
                   '(examined-rows)))
-  (test-case "initialise-metadata returns with the source rows set to empty by default"
-    (check-equal? (examined-table-source-rows (initialise-metadata "test")) empty))
-  (test-case "initialise-metadata returns with the source rows set if overriden"
-    (check-equal? (examined-table-source-rows
-                   (initialise-metadata "test" #:source-rows '(source-rows)))
-                  '(source-rows)))
   (test-case "initialise-metadata returns with the start-time set to now by default"
     ; this check only works becuase of computers are so fast. I could mock now but that seems excessive
     (check-equal? (seconds-between (examined-table-start-time (initialise-metadata "test")) (now)) 0)) 
