@@ -4,6 +4,7 @@
 (require gregor)
 (require "structs.rkt")
 (require (prefix-in rules: "pii/rules.rkt"))
+(require "reports/reports.rkt")
 
 (provide crawler)
 (define (crawler url #:connector [initialise-connection initialise-connection]
@@ -21,8 +22,8 @@
   ; look in each row for pii data
   ; return pii rows
   ;; (examine-rows rows rules)
-  ;;  write out results to file
-  ;;  Note everything after tables should be parallel-ised to make it faster
+  ;; (save-report) 
+  ;;  TODO Note everything after listing tables should be parallel-ised to make it faster
   ; return report
   url)
 
@@ -66,31 +67,44 @@
 
 (define (examine-table connection table-name
                        #:row-function [retrieve-rows retrieve-rows]
-                       #:row-estimate [estimate-row-count estimate-row-count])
+                       #:row-estimate [estimate-row-count estimate-row-count]
+                       #:row-examiner [examine-rows examine-rows])
   ;; TODO detect a difference between the count I get from the DB when starting versus the count
   ;; I get later
   (define start-time (now))
   (define row-count (estimate-row-count connection table-name))
   (define rows (retrieve-rows connection table-name))
-  (initialise-metadata table-name #:start-time start-time #:row-count row-count #:results rows))
+  (define rules (list rules:email rules:au-phone-number))
+  (define results (examine-rows rows rules))
+  (initialise-metadata table-name #:start-time start-time #:row-count row-count #:source-rows rows #:results results))
 
 (module+ test
   (define row-count-mock (mock #:behavior (const 1)))
   (define one-row-result '(#(1 "user@example.com")))
   (define row-mock (mock #:behavior (const one-row-result)))
+  (define examined-row-result (list  (examined-row (hash "key" '(1))
+                                                   '((1 "email address") (1 "AU phone number")))))
+  (define row-examiner-mock (mock #:behavior (const examined-row-result)))
   
   ;;; TODO deal with table not existing error  
   (test-case "examine-table exectutes a row query with the required arguments"
-    (examine-table connector-mock "foo" #:row-function row-mock #:row-estimate row-count-mock)
+    (examine-table connector-mock "foo" #:row-function row-mock
+                   #:row-estimate row-count-mock #:row-examiner row-examiner-mock)
     (check-mock-called-with? row-mock (arguments connector-mock "foo")))
 
   (test-case "examine-table checks the row count with the required arguments"
-    (examine-table connector-mock "foo" #:row-function row-mock #:row-estimate row-count-mock)
+    (examine-table connector-mock "foo" #:row-function row-mock
+                   #:row-estimate row-count-mock #:row-examiner row-examiner-mock)
     (check-mock-called-with? row-count-mock (arguments connector-mock "foo")))
   
+  (test-case "examine-table exectutes a row examiner with the required arguments"
+    (examine-table connector-mock "foo" #:row-function row-mock
+                   #:row-estimate row-count-mock #:row-examiner row-examiner-mock)
+    (check-mock-called-with? row-mock (arguments connector-mock "foo")))
+  
   (test-case "examine-table returns an examined-table struct with appropriate values"
-    (define result (examine-table connector-mock "foo" #:row-function row-mock #:row-estimate row-count-mock))
-    (check-equal? (examined-table-results result) one-row-result)
+    (define result (examine-table connector-mock "foo" #:row-function row-mock #:row-estimate row-count-mock #:row-examiner row-examiner-mock))
+    (check-equal? (examined-table-results result) examined-row-result)
     (check-equal? (examined-table-row-count result) 1)))
 
 (define (estimate-row-count connection table-name #:query-function [query-value query-value])
@@ -226,8 +240,7 @@
 (define pgc (initialise-connection))
 (define rows (examine-table pgc "users"))
 (define rules (list rules:email rules:au-phone-number))
-(define results (examine-rows (examined-table-source-rows rows) rules))
-results
+rows
 ;; TODO fix the struct generation so source-rows go in source rows and reults go in result rows
 ;; (define report (html-table-report results) )
 
