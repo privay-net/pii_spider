@@ -235,6 +235,46 @@
     (define rule-mock (mock #:behavior (const '("email address" #f))))
     (check-equal? (cadr (crawl-for-pii row-result rule-mock)) "email address")))
 
+(define (save-report examined-table-record #:output-dir [output-dir "output"]
+                     #:html-report [html-table-report html-table-report]
+                     #:save-file [call-with-output-file call-with-output-file])
+  (define report (html-table-report examined-table-record))
+  (make-directory* output-dir)
+  (define output-file-name (string-append output-dir "/"
+                                          (examined-table-name examined-table-record) ".html"))
+  (call-with-output-file output-file-name
+    #:exists 'truncate
+    (lambda (out)
+      (display report out)))
+  output-file-name)
+
+(module+ test
+  (define test-two-rows (list  (examined-row (hash "key" '(1))
+                                             '((1 "email address") (1 "AU phone number")))
+                               (examined-row (hash "key" '(2))
+                                             '((1 "email address") (1 "AU phone number"))))) 
+  (define start-time (moment 1970))
+  (define end-time (moment 2000 02 28 13 14 30))
+  (define examined-table-result (examined-table "two_rows" start-time end-time 2 test-two-rows))
+  (define test-report "HTML report")
+  (define report-mock (mock #:behavior (const test-report)))
+  (define-opaque test-io-port)
+  (define file-mock (mock #:behavior (const test-io-port)))
+  (test-case "save-report returns the name of the file it saved if it works"
+    (check-equal? (save-report examined-table-result) "output/two_rows.html"))
+  (test-case "save-report returns the name of the file it saved if it works"
+    (check-equal?
+     (save-report examined-table-result #:output-dir "example")
+     "example/two_rows.html"))
+  (test-case "save-report generates a HTML report via html-table-report"
+    (save-report examined-table-result #:html-report report-mock #:save-file file-mock)
+    (check-mock-called-with? report-mock (arguments examined-table-result)))
+  (test-case "save-report saves the file"
+    ;; Need a better test than this
+    (mock-reset! file-mock)
+    (save-report examined-table-result #:html-report report-mock #:save-file file-mock)
+    (check-mock-num-calls file-mock 1)))
+
 (define pgc (initialise-connection))
 (define rows (examine-table pgc "users"))
 rows

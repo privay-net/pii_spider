@@ -1,9 +1,8 @@
 * For v0.1
-** write the table results out to a file 
 ** create an aggregated report for all tables
-** write error handling
 ** connect to different databases
-** log messages
+** write error handling
+
 
 * After v0.1
 ** use koyo url parsing
