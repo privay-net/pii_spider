@@ -47,3 +47,29 @@
     (check-false (cadr (au-phone-number "test"))))
   (test-case "returns #f when not a string"
     (check-false (cadr (au-phone-number 1)))))
+
+(define (credit-card candidate)
+  (define visa-mc-regex (pregexp "[452]\\d{3}[\\s-]?\\d{4}[\\s-]?\\d{4}[\\s-]?\\d{4}"))
+  (define amex-regex (pregexp "3[47]\\d{2}[\\s-]?\\d{6}[\\s-]?\\d{5}"))
+  (list "Credit Card" (or (regexp-match? visa-mc-regex candidate)
+                          (regexp-match? amex-regex candidate))))
+
+(module+ test
+  (test-case "returns the rule name"
+    (check-equal? (car (credit-card "test")) "Credit Card"))
+  (test-case "returns #t for a valid visa card number"
+    (check-true (cadr (credit-card "4111111111111111"))))
+  (test-case "returns #t for a valid visa card number with spaces"
+    (check-true (cadr (credit-card "4111 1111 1111 1111"))))
+  (test-case "returns #t for a valid visa card number with spaces inside a string"
+    (check-true (cadr (credit-card "a credit card called 4111 1111 1111 1111 is hidden here"))))
+  (test-case "returns #t for a valid visa card number with hyphens"
+    (check-true (cadr (credit-card "4111-1111-1111-1111"))))
+  (test-case "returns #t for a valid visa card number with spaces and hypens"
+    (check-true (cadr (credit-card "4111 1111-1111 1111"))))
+  (test-case "returns #t for a valid amex card number"
+    (check-true (cadr (credit-card "371238839571772"))))
+  (test-case "returns #t for a valid amex card number with spaces"
+    (check-true (cadr (credit-card "3712 388395 71772"))))
+  (test-case "returns #f when not a credit card number"
+    (check-false (cadr (credit-card "test")))))
