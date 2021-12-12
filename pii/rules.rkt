@@ -106,12 +106,12 @@
   (if (regexp-match tfn-regex candidate)
       (zero?
        (remainder 
-        (foldr + 0  (map * magic-weights
-                         (map string->number
-                              (map string
-                                   (string->list
-                                    (foldr string-append ""
-                                           (cdr (regexp-match tfn-regex candidate)))))))) 11))
+        (foldr + 0 (map * magic-weights
+                        (map string->number
+                             (map string
+                                  (string->list
+                                   (foldr string-append ""
+                                          (cdr (regexp-match tfn-regex candidate)))))))) 11))
       #f))
 
 (module+ test
@@ -119,3 +119,5 @@
     (check-true (validate-tfn "123456782")))
   (test-case "returns #f for an invalid AU TFN"
     (check-false (validate-tfn "123456789"))))
+
+;; TODO have a go at medicare 

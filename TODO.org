@@ -19,6 +19,3 @@
 *** wide tables (10, 1000, 10000 columns)
 *** many rules (1, 100, 1000 rules)
 ** Score each kind of result (e.g. CC number 100, email 10)
-
-
-
