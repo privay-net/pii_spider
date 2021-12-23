@@ -3,11 +3,11 @@
 ** connect to different databases
 ** write error handling
 
-
 * After v0.1
-** use koyo url parsing
+** use koyo url parsing?
 ** run this out of a docker container
 ** Log progress to STDOUT
+** take rows in batches
 
 * After v0.2
 ** Write out the results to file for JSON processing
