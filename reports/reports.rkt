@@ -262,20 +262,23 @@
 (module+ test
   (define examined-table-result (examined-table "two_rows" start-time end-time 2 test-two-rows))
   (define test-report "HTML report")
+  (define-opaque test-mkdir)
   (define report-mock (mock #:behavior (const test-report)))
+  (define mkdir-mock (mock #:behavior (const test-mkdir)))
   
   (test-case "save-report returns the name of the file it saved if it works"
-    (check-equal? (save-report examined-table-result) "output/two_rows.html"))
-  (test-case "save-report returns the name of the file it saved if it works"
+    (check-equal? (save-report examined-table-result #:save-file output-file-mock
+                               #:mkdir mkdir-mock) "output/two_rows.html"))
+  (test-case "save-report returns the name of the file it saved if the output-dir is specified"
     (check-equal?
-     (save-report examined-table-result #:output-dir "example")
+     (save-report examined-table-result #:output-dir "example" #:save-file output-file-mock #:mkdir mkdir-mock)
      "example/two_rows.html"))
   (test-case "save-report generates a HTML report via html-table-report"
     (mock-reset! output-file-mock)
-    (save-report examined-table-result #:html-report report-mock #:save-file output-file-mock)
+    (save-report examined-table-result #:html-report report-mock #:save-file output-file-mock #:mkdir mkdir-mock)
     (check-mock-called-with? report-mock (arguments examined-table-result)))
   (test-case "save-report saves the file"
     (mock-reset! output-file-mock)
-    (save-report examined-table-result #:html-report report-mock #:save-file output-file-mock)
+    (save-report examined-table-result #:html-report report-mock #:save-file output-file-mock #:mkdir mkdir-mock)
     (define result (car (mock-call-results (car (mock-calls output-file-mock)))))
     (check-equal? result test-report)))
