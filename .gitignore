@@ -1,14 +1,6 @@
-# emacs
-*~
-\#*
-.\#*
-flycheck_*.el
-*_flymake.*
-
-# Mac
-.DS_Store
-
 # Racket
 compiled/
 /doc/
 coverage
+
+output
