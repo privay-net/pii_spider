@@ -8,7 +8,7 @@
   (require mock)
   (require mock/rackunit))
 
-(provide html-table-report save-report update-html-summary-report)
+(provide html-table-report save-report save-html-summary-report update-html-summary-report)
 
 (define (html-table-report table-results #:table-creator [row-table row-table] #:summary-creator [results-summary results-summary])
   (define report (txexpr* 'html '((lang "en") (class "no-js"))
@@ -206,6 +206,36 @@
     (define result "<!DOCTYPE html><html lang=\"en\" class=\"no-js\"><head><meta charset=\"UTF-8\"/><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"/><title>PII Spider Report</title><meta name=\"description\" content=\"Report on PII discovered in this database\"/></head><body><h1>Summary of PII Spider report run</h1><ul></ul></body></html>")
     (check-equal? (initial-html-summary-report) result)))
 
+(define (save-html-summary-report #:output-dir [output-dir "output"]
+                                  #:mkdir [make-directory* make-directory*]
+                                  #:report [report initial-html-summary-report]
+                                  #:output-file [call-with-output-file call-with-output-file])
+  (make-directory* output-dir)
+  (call-with-output-file (string-append output-dir "/" "index.html") 
+    (lambda (out)
+      (display report out)) #:exists 'replace)
+  
+  #t)
+(module+ test
+  (define mock-outputter (lambda (filename output-proc #:exists exists-val)
+                           (define mock-port (open-output-string))
+                           (output-proc mock-port)
+                           (get-output-string mock-port)))
+  (define output-file-mock (mock #:behavior mock-outputter))
+  (define-opaque test-mkdir)
+  (define mkdir-mock (mock #:behavior (const test-mkdir)))
+
+  (test-case "save=html-summary-report returns true"
+    (check-true (save-html-summary-report #:mkdir mkdir-mock #:output-file output-file-mock)))
+  (test-case "save-html-report-summary will make the output directory"
+    (save-html-summary-report #:mkdir mkdir-mock #:output-file output-file-mock)
+    (check-mock-called-with? mkdir-mock (arguments "output")))
+  (test-case "save-html-report-summary saves the report output "
+    (mock-reset! output-file-mock)
+    (save-html-summary-report #:mkdir mkdir-mock #:report "test-report" #:output-file output-file-mock)
+    (define result (car (mock-call-results (car (mock-calls output-file-mock)))))
+    (check-equal? result "test-report")))
+
 (define (update-html-summary-report table-name location
                                     #:input-file [open-input-file open-input-file]
                                     #:output-file [call-with-output-file call-with-output-file])
@@ -223,11 +253,6 @@
 (module+ test
   (define mock-report (lambda (filename) (open-input-string "<ul></ul>")))
   (define input-file-mock (mock #:behavior mock-report))
-  (define mock-outputter (lambda (filename output-proc #:exists exists-val)
-                           (define mock-port (open-output-string))
-                           (output-proc mock-port)
-                           (get-output-string mock-port)))
-  (define output-file-mock (mock #:behavior mock-outputter))
 
   (test-case "update-html-summary-report opens index.html"
     (update-html-summary-report "test" "test.html" #:input-file input-file-mock #:output-file output-file-mock)
@@ -262,9 +287,7 @@
 (module+ test
   (define examined-table-result (examined-table "two_rows" start-time end-time 2 test-two-rows))
   (define test-report "HTML report")
-  (define-opaque test-mkdir)
   (define report-mock (mock #:behavior (const test-report)))
-  (define mkdir-mock (mock #:behavior (const test-mkdir)))
   
   (test-case "save-report returns the name of the file it saved if it works"
     (check-equal? (save-report examined-table-result #:save-file output-file-mock
@@ -275,10 +298,12 @@
      "example/two_rows.html"))
   (test-case "save-report generates a HTML report via html-table-report"
     (mock-reset! output-file-mock)
-    (save-report examined-table-result #:html-report report-mock #:save-file output-file-mock #:mkdir mkdir-mock)
+    (save-report examined-table-result #:html-report report-mock
+                 #:save-file output-file-mock #:mkdir mkdir-mock)
     (check-mock-called-with? report-mock (arguments examined-table-result)))
   (test-case "save-report saves the file"
     (mock-reset! output-file-mock)
-    (save-report examined-table-result #:html-report report-mock #:save-file output-file-mock #:mkdir mkdir-mock)
+    (save-report examined-table-result #:html-report report-mock
+                 #:save-file output-file-mock #:mkdir mkdir-mock)
     (define result (car (mock-call-results (car (mock-calls output-file-mock)))))
     (check-equal? result test-report)))
