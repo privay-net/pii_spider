@@ -8,7 +8,7 @@
   (require mock)
   (require mock/rackunit))
 
-(provide html-table-report)
+(provide html-table-report save-report update-html-summary-report)
 
 (define (html-table-report table-results #:table-creator [row-table row-table] #:summary-creator [results-summary results-summary])
   (define report (txexpr* 'html '((lang "en") (class "no-js"))
@@ -186,3 +186,96 @@
     (define result "<ul class=\"rule-list\"><li>email address</li><li>AU phone number</li></ul>")
     (define two-rules '((1 "email address") (1 "AU phone number")))
     (check-equal? (xexpr->html (rule-list two-rules)) result)))
+
+(define (initial-html-summary-report)
+  (define report (txexpr* 'html '((lang "en") (class "no-js"))
+                          (txexpr* 'head empty
+                                   (txexpr 'meta '((charset "UTF-8")))
+                                   (txexpr 'meta '((name "viewport")
+                                                   (content "width=device-width, initial-scale=1")))
+                                   (txexpr 'title empty '("PII Spider Report"))
+                                   (txexpr 'meta '((name "description")
+                                                   (content "Report on PII discovered in this database"))))
+                          (txexpr* 'body empty
+                                   (txexpr 'h1 empty '("Summary of PII Spider report run"))
+                                   (txexpr 'ul empty '("")))))
+  (string-append "<!DOCTYPE html>" (xexpr->html report)))
+
+(module+ test
+  (test-case "initial-html-summary-report returns a HTML summary report"
+    (define result "<!DOCTYPE html><html lang=\"en\" class=\"no-js\"><head><meta charset=\"UTF-8\"/><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"/><title>PII Spider Report</title><meta name=\"description\" content=\"Report on PII discovered in this database\"/></head><body><h1>Summary of PII Spider report run</h1><ul></ul></body></html>")
+    (check-equal? (initial-html-summary-report) result)))
+
+(define (update-html-summary-report table-name location
+                                    #:input-file [open-input-file open-input-file]
+                                    #:output-file [call-with-output-file call-with-output-file])
+  (define summary-location "index.html")
+  (define report
+    (port->string (open-input-file summary-location) #:close? #t))
+  (define list-item (string-append "<li><a href=\"" location "\">" table-name "</a></li>"))
+  (define list-bottom (string-replace report "</ul>" (string-append list-item "</ul>")))
+
+  (call-with-output-file summary-location
+    (lambda (out)
+      (display list-bottom out)) #:exists 'replace)
+  #t)
+
+(module+ test
+  (define mock-report (lambda (filename) (open-input-string "<ul></ul>")))
+  (define input-file-mock (mock #:behavior mock-report))
+  (define mock-outputter (lambda (filename output-proc #:exists exists-val)
+                           (define mock-port (open-output-string))
+                           (output-proc mock-port)
+                           (get-output-string mock-port)))
+  (define output-file-mock (mock #:behavior mock-outputter))
+
+  (test-case "update-html-summary-report opens index.html"
+    (update-html-summary-report "test" "test.html" #:input-file input-file-mock #:output-file output-file-mock)
+    (check-mock-called-with? input-file-mock (arguments "index.html")))
+  (test-case "update-html-summary-report writes index.html but only once"
+    (mock-reset! input-file-mock)
+    (mock-reset! output-file-mock)
+    (update-html-summary-report "test" "test.html" #:input-file input-file-mock #:output-file output-file-mock)
+    (check-mock-num-calls output-file-mock 1))
+  (test-case "update-html-summary-report puts the report back"
+    (mock-reset! input-file-mock)
+    (mock-reset! output-file-mock)
+    (define expectation "<ul><li><a href=\"test.html\">test</a></li></ul>")
+    (update-html-summary-report "test" "test.html" #:input-file input-file-mock #:output-file output-file-mock)
+    (define result (car (mock-call-results (car (mock-calls output-file-mock)))))
+    (check-equal? result expectation)))
+
+(define (save-report examined-table-record #:output-dir [output-dir "output"]
+                     #:html-report [html-table-report html-table-report]
+                     #:save-file [call-with-output-file call-with-output-file]
+                     #:mkdir [make-directory* make-directory*])
+  (define report (html-table-report examined-table-record))
+  (make-directory* output-dir)
+  (define output-file-name (string-append output-dir "/"
+                                          (examined-table-name examined-table-record) ".html"))
+  (call-with-output-file output-file-name
+    #:exists 'truncate
+    (lambda (out)
+      (display report out)))
+  output-file-name)
+
+(module+ test
+  (define examined-table-result (examined-table "two_rows" start-time end-time 2 test-two-rows))
+  (define test-report "HTML report")
+  (define report-mock (mock #:behavior (const test-report)))
+  
+  (test-case "save-report returns the name of the file it saved if it works"
+    (check-equal? (save-report examined-table-result) "output/two_rows.html"))
+  (test-case "save-report returns the name of the file it saved if it works"
+    (check-equal?
+     (save-report examined-table-result #:output-dir "example")
+     "example/two_rows.html"))
+  (test-case "save-report generates a HTML report via html-table-report"
+    (mock-reset! output-file-mock)
+    (save-report examined-table-result #:html-report report-mock #:save-file output-file-mock)
+    (check-mock-called-with? report-mock (arguments examined-table-result)))
+  (test-case "save-report saves the file"
+    (mock-reset! output-file-mock)
+    (save-report examined-table-result #:html-report report-mock #:save-file output-file-mock)
+    (define result (car (mock-call-results (car (mock-calls output-file-mock)))))
+    (check-equal? result test-report)))

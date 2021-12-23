@@ -16,13 +16,17 @@
 
   ; find all the tables
   (define tables (list-tables pgc))
-  ; deal with taking some small number of rows vs scanning the entire thing
-  ; grab rows of data from each table
+  ;; initialise summary report
+  
+  ;; deal with taking some small number of rows vs scanning the entire thing
+
+  ;; grab rows of data from each table, return pii rows
   (define results (examine-table pgc "users"))
-  ; return pii rows
   ;; (save-report) 
+  ;; update summary report
+  
   ;;  TODO Note everything after listing tables should be parallel-ised to make it faster
-  ; return report
+  ; return summary report location
   url)
 
 (module+ test
@@ -38,12 +42,12 @@
   (define examine-tables-mock (mock #:behavior (const test-examined-table)))
   
   ;;; TODO make this a big old omnibus test
-  (test-case "crawler returns a report structure"
+  (test-case "crawler returns the location of the summary report"
     (check-eq?
      (crawler "not://a.url/test"
               #:connector connector-mock
               #:list-tables list-tables-mock
-              #:table-examiner examine-tables-mock) "not://a.url/test"))
+              #:table-examiner examine-tables-mock) "index.html"))
   
   (test-case "crawler compiles a list of tables to examine"
     (crawler "not://a.url/test" #:connector connector-mock
@@ -234,46 +238,6 @@
   (test-case "crawl-for-pii returns an count of 0 when no PII is detected"
     (define rule-mock (mock #:behavior (const '("email address" #f))))
     (check-equal? (cadr (crawl-for-pii row-result rule-mock)) "email address")))
-
-(define (save-report examined-table-record #:output-dir [output-dir "output"]
-                     #:html-report [html-table-report html-table-report]
-                     #:save-file [call-with-output-file call-with-output-file])
-  (define report (html-table-report examined-table-record))
-  (make-directory* output-dir)
-  (define output-file-name (string-append output-dir "/"
-                                          (examined-table-name examined-table-record) ".html"))
-  (call-with-output-file output-file-name
-    #:exists 'truncate
-    (lambda (out)
-      (display report out)))
-  output-file-name)
-
-(module+ test
-  (define test-two-rows (list  (examined-row (hash "key" '(1))
-                                             '((1 "email address") (1 "AU phone number")))
-                               (examined-row (hash "key" '(2))
-                                             '((1 "email address") (1 "AU phone number"))))) 
-  (define start-time (moment 1970))
-  (define end-time (moment 2000 02 28 13 14 30))
-  (define examined-table-result (examined-table "two_rows" start-time end-time 2 test-two-rows))
-  (define test-report "HTML report")
-  (define report-mock (mock #:behavior (const test-report)))
-  (define-opaque test-io-port)
-  (define file-mock (mock #:behavior (const test-io-port)))
-  (test-case "save-report returns the name of the file it saved if it works"
-    (check-equal? (save-report examined-table-result) "output/two_rows.html"))
-  (test-case "save-report returns the name of the file it saved if it works"
-    (check-equal?
-     (save-report examined-table-result #:output-dir "example")
-     "example/two_rows.html"))
-  (test-case "save-report generates a HTML report via html-table-report"
-    (save-report examined-table-result #:html-report report-mock #:save-file file-mock)
-    (check-mock-called-with? report-mock (arguments examined-table-result)))
-  (test-case "save-report saves the file"
-    ;; Need a better test than this
-    (mock-reset! file-mock)
-    (save-report examined-table-result #:html-report report-mock #:save-file file-mock)
-    (check-mock-num-calls file-mock 1)))
 
 (define pgc (initialise-connection))
 (define rows (examine-table pgc "users"))
