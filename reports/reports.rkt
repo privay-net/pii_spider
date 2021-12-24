@@ -208,9 +208,9 @@
 
 (define (save-html-summary-report #:output-dir [output-dir "output"]
                                   #:mkdir [make-directory* make-directory*]
-                                  #:report [report initial-html-summary-report]
                                   #:output-file [call-with-output-file call-with-output-file])
   (make-directory* output-dir)
+  (define report (initial-html-summary-report))
   (call-with-output-file (string-append output-dir "/" "index.html") 
     (lambda (out)
       (display report out)) #:exists 'replace)
@@ -232,9 +232,9 @@
     (check-mock-called-with? mkdir-mock (arguments "output")))
   (test-case "save-html-report-summary saves the report output "
     (mock-reset! output-file-mock)
-    (save-html-summary-report #:mkdir mkdir-mock #:report "test-report" #:output-file output-file-mock)
+    (save-html-summary-report #:mkdir mkdir-mock #:output-file output-file-mock)
     (define result (car (mock-call-results (car (mock-calls output-file-mock)))))
-    (check-equal? result "test-report")))
+    (check-equal? result (initial-html-summary-report))))
 
 (define (update-html-summary-report table-name location
                                     #:input-file [open-input-file open-input-file]
