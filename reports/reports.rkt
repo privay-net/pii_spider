@@ -209,13 +209,14 @@
 (define (save-html-summary-report #:output-dir [output-dir "output"]
                                   #:mkdir [make-directory* make-directory*]
                                   #:output-file [call-with-output-file call-with-output-file])
+  (define report-location (string-append output-dir "/" "index.html"))
   (make-directory* output-dir)
   (define report (initial-html-summary-report))
-  (call-with-output-file (string-append output-dir "/" "index.html") 
+  (call-with-output-file report-location 
     (lambda (out)
       (display report out)) #:exists 'replace)
   
-  #t)
+  report-location)
 (module+ test
   (define mock-outputter (lambda (filename output-proc #:exists exists-val)
                            (define mock-port (open-output-string))
@@ -225,8 +226,10 @@
   (define-opaque test-mkdir)
   (define mkdir-mock (mock #:behavior (const test-mkdir)))
 
-  (test-case "save=html-summary-report returns true"
-    (check-true (save-html-summary-report #:mkdir mkdir-mock #:output-file output-file-mock)))
+  (test-case "save=html-summary-report returns the rpoert location"
+    (check-equal? (save-html-summary-report #:mkdir mkdir-mock #:output-file output-file-mock) "output/index.html"))
+  (test-case "save=html-summary-report returns the rpoert location"
+    (check-equal? (save-html-summary-report #:output-dir "test" #:mkdir mkdir-mock #:output-file output-file-mock) "test/index.html"))
   (test-case "save-html-report-summary will make the output directory"
     (save-html-summary-report #:mkdir mkdir-mock #:output-file output-file-mock)
     (check-mock-called-with? mkdir-mock (arguments "output")))
@@ -239,7 +242,7 @@
 (define (update-html-summary-report table-name location
                                     #:input-file [open-input-file open-input-file]
                                     #:output-file [call-with-output-file call-with-output-file])
-  (define summary-location "index.html")
+  (define summary-location "output/index.html")
   (define report
     (port->string (open-input-file summary-location) #:close? #t))
   (define list-item (string-append "<li><a href=\"" location "\">" table-name "</a></li>"))
@@ -256,7 +259,7 @@
 
   (test-case "update-html-summary-report opens index.html"
     (update-html-summary-report "test" "test.html" #:input-file input-file-mock #:output-file output-file-mock)
-    (check-mock-called-with? input-file-mock (arguments "index.html")))
+    (check-mock-called-with? input-file-mock (arguments "output/index.html")))
   (test-case "update-html-summary-report writes index.html but only once"
     (mock-reset! input-file-mock)
     (mock-reset! output-file-mock)
