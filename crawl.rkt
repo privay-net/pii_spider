@@ -17,17 +17,22 @@
   ; find all the tables
   (define tables (list-tables pgc))
   ;; initialise summary report
-  
+  (define report-location (save-html-summary-report))
   ;; deal with taking some small number of rows vs scanning the entire thing
 
   ;; grab rows of data from each table, return pii rows
-  (define results (examine-table pgc "users"))
+  (map (lambda (table)
+         (define results (examine-table pgc table))
+         (save-report results)
+         (update-html-summary-report table (string-append table ".html")))
+       tables)
+
   ;; (save-report) 
   ;; update summary report
   
   ;;  TODO Note everything after listing tables should be parallel-ised to make it faster
   ; return summary report location
-  url)
+  report-location)
 
 (module+ test
   (require rackunit)
@@ -36,18 +41,26 @@
 
   (define-opaque test-connection)
   (define connector-mock (mock #:behavior (const test-connection)))
-  (define-opaque test-list-tables)
+  (define test-list-tables '("test"))
   (define list-tables-mock (mock #:behavior (const test-list-tables)))
-  (define-opaque test-examined-table)
+  (define test-two-rows (list  (examined-row (hash "key" '(1))
+                                             '((1 "email address") (1 "AU phone number")))
+                               (examined-row (hash "key" '(2))
+                                             '((1 "email address") (1 "AU phone number"))))) 
+  (define start-time (moment 1970))
+  (define end-time (moment 2000 02 28 13 14 30))
+  (define test-examined-table (examined-table "two_rows" start-time end-time 2 test-two-rows))
+  
+
   (define examine-tables-mock (mock #:behavior (const test-examined-table)))
   
   ;;; TODO make this a big old omnibus test
   (test-case "crawler returns the location of the summary report"
-    (check-eq?
+    (check-equal?
      (crawler "not://a.url/test"
               #:connector connector-mock
               #:list-tables list-tables-mock
-              #:table-examiner examine-tables-mock) "index.html"))
+              #:table-examiner examine-tables-mock) "output/index.html"))
   
   (test-case "crawler compiles a list of tables to examine"
     (crawler "not://a.url/test" #:connector connector-mock
@@ -56,7 +69,7 @@
   (test-case "crawler examines each table"
     (crawler "not://a.url/test" #:connector connector-mock
              #:list-tables list-tables-mock #:table-examiner examine-tables-mock)
-    (check-mock-called-with? examine-tables-mock (arguments test-connection "users"))))
+    (check-mock-called-with? examine-tables-mock (arguments test-connection "test"))))
 
 (define (initialise-connection #:connector [postgresql-connect postgresql-connect])
   (postgresql-connect #:user "robert"
@@ -80,7 +93,7 @@
                        #:row-examiner [examine-rows examine-rows])
   ;; TODO detect a difference between the count I get from the DB when starting versus the count
   ;; I get later
-  (define start-time (now))
+  (define start-time (now/moment))
   (define row-count (estimate-row-count connection table-name))
   (define rows (retrieve-rows connection table-name))
   (define rules (list rules:email rules:au-phone-number))
@@ -149,10 +162,10 @@
     (check-equal? (retrieve-rows connector-mock "baz" #:query-function query-mock) one-row-result)))
 
 (define (initialise-metadata table-name
-                             #:start-time [start-time (now)]
+                             #:start-time [start-time (now/moment)]
                              #:row-count [row-count 0]
                              #:results [results empty])
-  (examined-table table-name start-time (now) row-count results))
+  (examined-table table-name start-time (now/moment) row-count results))
 
 (module+ test
   (test-case "initialise-metadata returns an examined-table"
@@ -171,7 +184,7 @@
                   '(examined-rows)))
   (test-case "initialise-metadata returns with the start-time set to now by default"
     ; this check only works becuase of computers are so fast. I could mock now but that seems excessive
-    (check-equal? (seconds-between (examined-table-start-time (initialise-metadata "test")) (now)) 0)) 
+    (check-equal? (seconds-between (examined-table-start-time (initialise-metadata "test")) (now/moment)) 0)) 
   (test-case "initialise-metadata returns with the start-time set if overriden"
     (define test-start-time (moment 2000))
     (check-equal? (examined-table-start-time (initialise-metadata "test" #:start-time test-start-time)) test-start-time)))
@@ -238,12 +251,6 @@
   (test-case "crawl-for-pii returns an count of 0 when no PII is detected"
     (define rule-mock (mock #:behavior (const '("email address" #f))))
     (check-equal? (cadr (crawl-for-pii row-result rule-mock)) "email address")))
-
-(define pgc (initialise-connection))
-(define rows (examine-table pgc "users"))
-rows
-;; TODO fix the struct generation so source-rows go in source rows and reults go in result rows
-;; (define report (html-table-report results) )
 
 
 
