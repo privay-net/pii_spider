@@ -8,29 +8,27 @@
 
 (provide crawler)
 
-(define (crawler url #:connector [initialise-connection initialise-connection]
+(define (crawler db-credentials #:connector [initialise-connection initialise-connection]
                  #:list-tables [list-tables list-tables]
                  #:table-examiner [examine-table examine-table])
   ; connect to the db
-  (define pgc (initialise-connection))
+  (define pgc (initialise-connection db-credentials))
 
   ; find all the tables
   (define tables (list-tables pgc))
+
   ;; initialise summary report
   (define report-location (save-html-summary-report))
-  ;; deal with taking some small number of rows vs scanning the entire thing
-
+  
   ;; grab rows of data from each table, return pii rows
+  ;;  TODO Note everything after listing tables should be parallel-ised to make it faster
   (map (lambda (table)
+         ;; deal with taking some small number of rows vs scanning the entire thing
          (define results (examine-table pgc table))
          (save-report results)
          (update-html-summary-report table (string-append table ".html")))
        tables)
 
-  ;; (save-report) 
-  ;; update summary report
-  
-  ;;  TODO Note everything after listing tables should be parallel-ised to make it faster
   ; return summary report location
   report-location)
 
@@ -53,28 +51,33 @@
   
 
   (define examine-tables-mock (mock #:behavior (const test-examined-table)))
+  (define test-db-credentials (hash 'username "robert" 'password "bhujasample4$" 'database "pii" 'server "localhost" 'port "5432"))
   
-  ;;; TODO make this a big old omnibus test
   (test-case "crawler returns the location of the summary report"
     (check-equal?
-     (crawler "not://a.url/test"
+     (crawler test-db-credentials
               #:connector connector-mock
               #:list-tables list-tables-mock
               #:table-examiner examine-tables-mock) "output/index.html"))
-  
+  (test-case "crawler sends the db details to initialise-connection"
+    (crawler test-db-credentials #:connector connector-mock
+             #:list-tables list-tables-mock #:table-examiner examine-tables-mock)
+    (check-mock-called-with? connector-mock (arguments test-db-credentials)))
   (test-case "crawler compiles a list of tables to examine"
-    (crawler "not://a.url/test" #:connector connector-mock
+    (crawler test-db-credentials #:connector connector-mock
              #:list-tables list-tables-mock #:table-examiner examine-tables-mock)
     (check-mock-called-with? list-tables-mock (arguments test-connection)))
   (test-case "crawler examines each table"
-    (crawler "not://a.url/test" #:connector connector-mock
+    (crawler test-db-credentials #:connector connector-mock
              #:list-tables list-tables-mock #:table-examiner examine-tables-mock)
     (check-mock-called-with? examine-tables-mock (arguments test-connection "test"))))
 
-(define (initialise-connection #:connector [postgresql-connect postgresql-connect])
-  (postgresql-connect #:user "robert"
-                      #:database "pii"
-                      #:password "bhujasample4$"))
+(define (initialise-connection credentials #:connector [postgresql-connect postgresql-connect])
+  (postgresql-connect #:user (hash-ref credentials 'username)
+                      #:database (hash-ref credentials 'database)
+                      #:password (hash-ref credentials 'password)
+                      #:server (hash-ref credentials 'server)
+                      #:port (hash-ref credentials 'port)))
 
 
 (module+ test
@@ -82,10 +85,12 @@
   ;;; TODO deal with a failed connection
   ;;; TODO pool connections
   (test-case "initialise-connection gets the connection for a database"
-    (initialise-connection #:connector connector-mock)
-    (check-mock-called-with? connector-mock (arguments #:database "pii"
-                                                       #:password "bhujasample4$"
-                                                       #:user "robert"))))
+    (initialise-connection test-db-credentials #:connector connector-mock)
+    (check-mock-called-with? connector-mock (arguments #:database (hash-ref test-db-credentials 'database)
+                                                       #:password (hash-ref test-db-credentials 'password)
+                                                       #:user (hash-ref test-db-credentials 'username)
+                                                       #:server (hash-ref test-db-credentials 'server)
+                                                       #:port (hash-ref test-db-credentials 'port)))))
 
 (define (examine-table connection table-name
                        #:row-function [retrieve-rows retrieve-rows]
