@@ -1,6 +1,6 @@
 #lang racket
 
-(provide email au-phone-number)
+(provide email au-phone-number credit-card au-tax-file-number)
 
 ;; TODO have this maybe with levels of expense for deeper checking i.e. level 1 - regexp level 2 - domain check level 3 - test email
 (define (email candidate)
@@ -120,4 +120,18 @@
   (test-case "returns #f for an invalid AU TFN"
     (check-false (validate-tfn "123456789"))))
 
-;; TODO have a go at medicare 
+;; TODO have a go at medicare
+
+(define (password candidate)
+  (define simple-regex #px"password[:]?[\\s]+")
+  (if (string? candidate)
+      (list "password" (regexp-match? simple-regex candidate))
+      (list "password" #f)))
+
+(module+ test
+   (test-case "returns the rule name"
+    (check-equal? (car (password "test")) "password"))
+  (test-case "returns #f when not a likely password"
+    (check-false (cadr (password "test"))))
+  (test-case "returns #t for a likely password preceeded by the word password"
+    (check-true (cadr (password "password: passw0rd")))))
