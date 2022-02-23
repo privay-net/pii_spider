@@ -48,25 +48,26 @@
     (html-table-report test-zero-record-table #:table-creator table-creator-mock)
     (check-mock-called-with?  table-creator-mock (arguments (examined-table-results test-zero-record-table))))
   (test-case "html-table-report produces a report for the table"
-    (define result "<!DOCTYPE html><html lang=\"en\" class=\"no-js\"><head><meta charset=\"UTF-8\"/><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"/><title>PII Spider Report</title><meta name=\"description\" content=\"Report on PII discovered in this database\"/><link href=\"https://unpkg.com/tailwindcss@^1.0/dist/tailwind.min.css\" rel=\"stylesheet\"/></head><body><div class=\"min-w-screen min-h-screen bg-gray-200 flex-col p-3 overflow-auto\"><h1 class=\"text-center text-5xl font-extrabold\">Report for table two_rows</h1><div class=\"p-3 m-2 bg-white rounded-md\"><table><tr><td>Start Time:</td><td>1970-01-01 00:00:00 +1000</td></tr><tr><td>End Time:</td><td>2000-02-28 13:14:00 +1100</td></tr><tr><td>Rows Examined:</td><td>2</td></tr></table></div><div class=\"p-3 m-2 bg-white rounded-md\"><h2 class=\"text-3xl\">Results</h2><table class=\"table-auto w-full\"><thead><tr><th>Key</th><th>Rule</th></tr></thead><tbody><tr class=\"border-b-2 border-gray-300\"><td class=\"text-center\">1</td><td><ul><li class=\"float-left p-1 m-4 border-2 rounded-full\"><span class=\"p1\">email address</span></li><li class=\"float-left p-1 m-4 border-2 rounded-full\"><span class=\"p1\">AU phone number</span></li></ul></td></tr><tr class=\"border-b-2 border-gray-300\"><td class=\"text-center\">2</td><td><ul><li class=\"float-left p-1 m-4 border-2 rounded-full\"><span class=\"p1\">email address</span></li><li class=\"float-left p-1 m-4 border-2 rounded-full\"><span class=\"p1\">AU phone number</span></li></ul></td></tr></tbody></table></div></div></body></html>")
+    (define result "<!DOCTYPE html><html lang=\"en\" class=\"no-js\"><head><meta charset=\"UTF-8\"/><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"/><title>PII Spider Report</title><meta name=\"description\" content=\"Report on PII discovered in this database\"/><link href=\"https://unpkg.com/tailwindcss@^1.0/dist/tailwind.min.css\" rel=\"stylesheet\"/></head><body><div class=\"min-w-screen min-h-screen bg-gray-200 flex-col p-3 overflow-auto\"><h1 class=\"text-center text-5xl font-extrabold\">Report for table two_rows</h1><div class=\"p-3 m-2 bg-white rounded-md\"><h2 class=\"text-3xl\">Statistics</h2><table class=\"table-auto w-full\"><tr><td class=\"text-right pr-4\">Start Time:</td><td>1970-01-01 00:00:00</td></tr><tr><td class=\"text-right pr-4\">End Time:</td><td>2000-02-28 13:14:00</td></tr><tr><td class=\"text-right pr-4\">Rows Examined:</td><td>2</td></tr></table></div><div class=\"p-3 m-2 bg-white rounded-md\"><h2 class=\"text-3xl\">Results</h2><table class=\"table-auto w-full\"><thead><tr><th>Key</th><th>Rule</th></tr></thead><tbody><tr class=\"border-b-2 border-gray-300\"><td class=\"text-center\">1</td><td><ul><li class=\"float-left p-1 m-4 border-2 rounded-full\"><span class=\"p1\">email address</span></li><li class=\"float-left p-1 m-4 border-2 rounded-full\"><span class=\"p1\">AU phone number</span></li></ul></td></tr><tr class=\"border-b-2 border-gray-300\"><td class=\"text-center\">2</td><td><ul><li class=\"float-left p-1 m-4 border-2 rounded-full\"><span class=\"p1\">email address</span></li><li class=\"float-left p-1 m-4 border-2 rounded-full\"><span class=\"p1\">AU phone number</span></li></ul></td></tr></tbody></table></div></div></body></html>")
     (check-equal? (html-table-report test-two-record-table) result)))
 
 (define (results-summary results)
   (txexpr* 'div '((class "p-3 m-2 bg-white rounded-md"))
-           (txexpr* 'table empty
+           (txexpr 'h2 '((class "text-3xl")) (list "Statistics"))
+           (txexpr* 'table '((class "table-auto w-full"))
                     (txexpr* 'tr empty
-                             (txexpr 'td empty '("Start Time:"))
-                             (txexpr 'td empty (list (~t (examined-table-start-time results) "yyyy-MM-dd HH:mm:SS Z"))))
+                             (txexpr 'td '((class "text-right pr-4")) '("Start Time:"))
+                             (txexpr 'td empty (list (~t (examined-table-start-time results) "yyyy-MM-dd HH:mm:SS"))))
                     (txexpr* 'tr empty
-                             (txexpr 'td empty '("End Time:"))
-                             (txexpr 'td empty (list (~t (examined-table-end-time results) "yyyy-MM-dd HH:mm:SS Z"))))
+                             (txexpr 'td '((class "text-right pr-4")) '("End Time:"))
+                             (txexpr 'td empty (list (~t (examined-table-end-time results) "yyyy-MM-dd HH:mm:SS"))))
                     (txexpr* 'tr empty
-                             (txexpr 'td empty '("Rows Examined:"))
+                             (txexpr 'td '((class "text-right pr-4")) '("Rows Examined:"))
                              (txexpr 'td empty (list (number->string (examined-table-row-count results))))))))
 
 (module+ test
   (test-case "results-summary will create a div summarising the results of the table"
-    (define result "<div class=\"p-3 m-2 bg-white rounded-md\"><table><tr><td>Start Time:</td><td>1970-01-01 00:00:00 +1000</td></tr><tr><td>End Time:</td><td>2000-02-28 13:14:00 +1100</td></tr><tr><td>Rows Examined:</td><td>0</td></tr></table></div>")
+    (define result "<div class=\"p-3 m-2 bg-white rounded-md\"><h2 class=\"text-3xl\">Statistics</h2><table class=\"table-auto w-full\"><tr><td class=\"text-right pr-4\">Start Time:</td><td>1970-01-01 00:00:00</td></tr><tr><td class=\"text-right pr-4\">End Time:</td><td>2000-02-28 13:14:00</td></tr><tr><td class=\"text-right pr-4\">Rows Examined:</td><td>0</td></tr></table></div>")
     (check-equal? (xexpr->html (results-summary test-zero-record-table)) result)))
 
 (define (row-table rows #:row-creator [row-table-body row-table-body])
