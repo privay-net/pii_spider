@@ -12,16 +12,19 @@
 
 (define (html-table-report table-results #:table-creator [row-table row-table] #:summary-creator [results-summary results-summary])
   (define report (txexpr* 'html '((lang "en") (class "no-js"))
-                           (txexpr* 'head empty
-                                    (txexpr 'meta '((charset "UTF-8")))
-                                    (txexpr 'meta '((name "viewport")
-                                                    (content "width=device-width, initial-scale=1")))
-                                    (txexpr 'title empty '("PII Spider Report"))
-                                    (txexpr 'meta '((name "description")
-                                                    (content "Report on PII discovered in this database"))))
-                           (txexpr* 'body empty
-                                    (results-summary table-results)
-                                    (row-table (examined-table-results table-results)))))
+                          (txexpr* 'head empty
+                                   (txexpr 'meta '((charset "UTF-8")))
+                                   (txexpr 'meta '((name "viewport")
+                                                   (content "width=device-width, initial-scale=1")))
+                                   (txexpr 'title empty '("PII Spider Report"))
+                                   (txexpr 'meta '((name "description")
+                                                   (content "Report on PII discovered in this database")))
+                                   (txexpr 'link '((href "https://unpkg.com/tailwindcss@^1.0/dist/tailwind.min.css") (rel "stylesheet"))))
+                          (txexpr* 'body empty
+                                   (txexpr* 'div '((class "min-w-screen min-h-screen bg-gray-200 flex-col p-3 overflow-auto"))
+                                            (txexpr 'h1 '((class "text-center text-5xl font-extrabold")) (list (string-append "Results for table " (examined-table-name table-results))))
+                                            (results-summary table-results)
+                                            (row-table (examined-table-results table-results))))))
   (string-append "<!DOCTYPE html>" (xexpr->html report)))
 
 (module+ test
@@ -36,7 +39,7 @@
   (define test-zero-record-table (examined-table "no_rows" start-time end-time 0 test-no-rows))
   
   (test-case "html-table-report produces a HTML report of the run"
-    (define result "<!DOCTYPE html><html lang=\"en\" class=\"no-js\"><head><meta charset=\"UTF-8\"/><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"/><title>PII Spider Report</title><meta name=\"description\" content=\"Report on PII discovered in this database\"/></head><body><p>mock summary</p><p>mock table</p></body></html>")
+    (define result "<!DOCTYPE html><html lang=\"en\" class=\"no-js\"><head><meta charset=\"UTF-8\"/><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"/><title>PII Spider Report</title><meta name=\"description\" content=\"Report on PII discovered in this database\"/><link href=\"https://unpkg.com/tailwindcss@^1.0/dist/tailwind.min.css\" rel=\"stylesheet\"/></head><body><div class=\"min-w-screen min-h-screen bg-gray-200 flex-col p-3 overflow-auto\"><h1 class=\"text-center text-5xl font-extrabold\">Results for table no_rows</h1><p>mock summary</p><p>mock table</p></div></body></html>")
     (define table-creator-mock (mock #:behavior (const (txexpr 'p empty (list "mock table")))))
     (define summary-mock (mock #:behavior (const (txexpr 'p empty (list "mock summary")))))
     (check-equal? (html-table-report test-zero-record-table #:table-creator table-creator-mock #:summary-creator summary-mock) result))
@@ -45,7 +48,7 @@
     (html-table-report test-zero-record-table #:table-creator table-creator-mock)
     (check-mock-called-with?  table-creator-mock (arguments (examined-table-results test-zero-record-table))))
   (test-case "html-table-report produces a report for the table"
-    (define result "<!DOCTYPE html><html lang=\"en\" class=\"no-js\"><head><meta charset=\"UTF-8\"/><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"/><title>PII Spider Report</title><meta name=\"description\" content=\"Report on PII discovered in this database\"/></head><body><div><h1>Results for table two_rows</h1><table><tr><td>Start Time:</td><td>1970-01-01 00:00:00 +1000</td></tr><tr><td>End Time:</td><td>2000-02-28 13:14:00 +1100</td></tr><tr><td>Rows Examined:</td><td>2</td></tr></table></div><table><caption>Detailed results breakdown</caption><thead><tr><th>Key</th><th>Rule</th></tr></thead><tbody><tr><td>1</td><td><ul class=\"rule-list\"><li>email address</li><li>AU phone number</li></ul></td></tr><tr><td>2</td><td><ul class=\"rule-list\"><li>email address</li><li>AU phone number</li></ul></td></tr></tbody></table></body></html>")
+    (define result "<!DOCTYPE html><html lang=\"en\" class=\"no-js\"><head><meta charset=\"UTF-8\"/><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"/><title>PII Spider Report</title><meta name=\"description\" content=\"Report on PII discovered in this database\"/><link href=\"https://unpkg.com/tailwindcss@^1.0/dist/tailwind.min.css\" rel=\"stylesheet\"/></head><body><div class=\"min-w-screen min-h-screen bg-gray-200 flex-col p-3 overflow-auto\"><h1 class=\"text-center text-5xl font-extrabold\">Results for table two_rows</h1><div><h1>Results for table two_rows</h1><table><tr><td>Start Time:</td><td>1970-01-01 00:00:00 +1000</td></tr><tr><td>End Time:</td><td>2000-02-28 13:14:00 +1100</td></tr><tr><td>Rows Examined:</td><td>2</td></tr></table></div><table><caption>Detailed results breakdown</caption><thead><tr><th>Key</th><th>Rule</th></tr></thead><tbody><tr><td>1</td><td><ul class=\"rule-list\"><li>email address</li><li>AU phone number</li></ul></td></tr><tr><td>2</td><td><ul class=\"rule-list\"><li>email address</li><li>AU phone number</li></ul></td></tr></tbody></table></div></body></html>")
     (check-equal? (html-table-report test-two-record-table) result)))
 
 (define (results-summary results)
