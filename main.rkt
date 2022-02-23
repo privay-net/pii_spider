@@ -1,9 +1,5 @@
 #lang racket/base
-(require racket/vector)
 (require "crawl.rkt")
-
-(module+ test
-  (require rackunit))
 
 (module+ main
   ;; (Optional) main submodule. Put code here if you need it to be executed when
@@ -12,6 +8,42 @@
   ;; http://docs.racket-lang.org/guide/Module_Syntax.html#%28part._main-and-test%29
 
   (require racket/cmdline)
+
+  (define-logger web)
+  (define web-logger-receiver (make-log-receiver web-logger 'info))
+  (current-logger web-logger)
+
+  (define (write-to-file destination content)
+    (with-output-to-file destination
+        (λ ()
+         (displayln 
+          content))
+      #:mode 'text #:exists 'append))
+
+  (define (write-to-port destination content)
+    (displayln content destination))
+
+  (define log-destinations
+    (list (list write-to-file "web.log")
+          (list write-to-port (current-error-port))))
+
+  (define (send-log-content content destinations)
+    (unless (null? destinations)
+      (let ([ destination (car destinations)])
+        ((car destination) (cadr destination) content)) 
+      (send-log-content content (cdr destinations))))
+
+  ; Listen for events on the log-receiver
+  (void 
+   (thread 
+    (λ()(let loop ()
+          (define log-vector (sync web-logger-receiver))
+          (define content (format "[~a] ~a\n"
+                                  (vector-ref log-vector 0)
+                                  (vector-ref log-vector 1)))
+          
+          (send-log-content content log-destinations)
+          (loop)))))
   
   (define credentials (make-hash))
   (hash-set! credentials 'server "localhost")

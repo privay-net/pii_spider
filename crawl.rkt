@@ -12,17 +12,21 @@
                  #:list-tables [list-tables list-tables]
                  #:table-examiner [examine-table examine-table])
   ; connect to the db
+  (log-info "Connecting to the database")
   (define pgc (initialise-connection db-credentials))
 
   ; find all the tables
+  (log-info "Examining database structure")
   (define tables (list-tables pgc))
 
   ;; initialise summary report
+  (log-info "Initialise the output report")
   (define report-location (save-html-summary-report))
   
   ;; grab rows of data from each table, return pii rows
   ;;  TODO Note everything after listing tables should be parallel-ised to make it faster
   (map (lambda (table)
+         (log-info (format "Examining table ~a" table))
          ;; deal with taking some small number of rows vs scanning the entire thing
          (define results (examine-table pgc table))
          (save-report results)
@@ -30,6 +34,7 @@
        tables)
 
   ; return summary report location
+  (log-info "Run completed.")
   report-location)
 
 (module+ test
@@ -86,11 +91,12 @@
   ;;; TODO pool connections
   (test-case "initialise-connection gets the connection for a database"
     (initialise-connection test-db-credentials #:connector connector-mock)
-    (check-mock-called-with? connector-mock (arguments #:database (hash-ref test-db-credentials 'database)
-                                                       #:password (hash-ref test-db-credentials 'password)
-                                                       #:user (hash-ref test-db-credentials 'username)
-                                                       #:server (hash-ref test-db-credentials 'server)
-                                                       #:port (hash-ref test-db-credentials 'port)))))
+    (check-mock-called-with? connector-mock
+                             (arguments #:database (hash-ref test-db-credentials 'database)
+                                        #:password (hash-ref test-db-credentials 'password)
+                                        #:user (hash-ref test-db-credentials 'username)
+                                        #:server (hash-ref test-db-credentials 'server)
+                                        #:port (hash-ref test-db-credentials 'port)))))
 
 (define (examine-table connection table-name
                        #:row-function [retrieve-rows retrieve-rows]
