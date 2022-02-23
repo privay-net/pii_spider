@@ -1,21 +1,24 @@
 * For v0.1
-** create an aggregated report for all tables
-** connect to different databases
 ** write error handling
+** fontawesome - put in CSS folder.
 
 * After v0.1
 ** use koyo url parsing?
 ** run this out of a docker container
 ** Log progress to STDOUT
 ** take rows in batches
+** log level command line flag
+** exclusions (i.e. don't examine table x)
 
 * After v0.2
 ** Write out the results to file for JSON processing
 ** Send the results to a webapp
 ** Need to make a progress reporting web app.
+** stop using SELECT * and move to explicit columns
 ** support mysql
 ** profile speed over:
 *** long tables (5k, 50k, 500k rows)
 *** wide tables (10, 1000, 10000 columns)
 *** many rules (1, 100, 1000 rules)
 ** Score each kind of result (e.g. CC number 100, email 10)
+
