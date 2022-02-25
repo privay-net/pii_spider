@@ -24,7 +24,7 @@
     (displayln content destination))
 
   (define log-destinations
-    (list (list write-to-file "web.log")
+    (list (list write-to-file "pii_spider.log")
           (list write-to-port (current-error-port))))
 
   (define (send-log-content content destinations)
