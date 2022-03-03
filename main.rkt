@@ -10,7 +10,7 @@
   (require racket/cmdline)
 
   (define-logger web)
-  (define web-logger-receiver (make-log-receiver web-logger 'info))
+  (define web-logger-receiver (make-log-receiver web-logger 'info 'web))
   (current-logger web-logger)
 
   (define (write-to-file destination content)
