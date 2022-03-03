@@ -107,7 +107,7 @@
   (define start-time (now/moment))
   (define row-count (estimate-row-count connection table-name))
   (define rows (retrieve-rows connection table-name))
-  (define rules (list rules:email rules:au-phone-number))
+  (define rules (list rules:email rules:au-phone-number rules:credit-card rules:au-tax-file-number))
   (define results (examine-rows rows rules))
   (initialise-metadata table-name #:start-time start-time #:row-count row-count #:results results))
 
