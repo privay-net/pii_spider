@@ -9,22 +9,22 @@
 
   (require racket/cmdline)
 
-  (define-logger web)
-  (define web-logger-receiver (make-log-receiver web-logger 'info 'web))
-  (current-logger web-logger)
+  (define-logger agent)
+  (define agent-logger-receiver (make-log-receiver agent-logger 'info 'agent))
+  (current-logger agent-logger)
 
   (define (write-to-file destination content)
     (with-output-to-file destination
-        (λ ()
-         (displayln 
-          content))
+      (λ ()
+        (displayln 
+         content))
       #:mode 'text #:exists 'append))
 
   (define (write-to-port destination content)
     (displayln content destination))
 
   (define log-destinations
-    (list (list write-to-file "pii_spider.log")
+    (list (list write-to-file "pii_agent.log")
           (list write-to-port (current-error-port))))
 
   (define (send-log-content content destinations)
@@ -37,7 +37,7 @@
   (void 
    (thread 
     (λ()(let loop ()
-          (define log-vector (sync web-logger-receiver))
+          (define log-vector (sync agent-logger-receiver))
           (define content (format "[~a] ~a\n"
                                   (vector-ref log-vector 0)
                                   (vector-ref log-vector 1)))
@@ -45,18 +45,20 @@
           (send-log-content content log-destinations)
           (loop)))))
   
-  (define credentials (make-hash))
-  (hash-set! credentials 'server "localhost")
-  (hash-set! credentials 'port 5432)
+  (define settings (make-hash))
+  (hash-set! settings 'server "localhost")
+  (hash-set! settings 'port 5432)
+  (hash-set! settings 'ignore-file "ignore.json")
   
   (command-line
    #:program "pii_spider"
    #:once-each
-   [("-d" "--database") database "the database URL to connect to" (hash-set! credentials 'database database)]
-   [("-u" "--username") username "the username to connect with" (hash-set! credentials 'username username)]
-   [("-p" "--password") password "the password to connect with" (hash-set! credentials 'password password)]
-   [("-s" "--server") server "the server to connect with" (hash-set! credentials 'server server)]
-   [("-P" "--port") port "the port to connect to" (hash-set! credentials 'port (string->number port))]
+   [("-d" "--database") database "the database URL to connect to" (hash-set! settings 'database database)]
+   [("-u" "--username") username "the username to connect with" (hash-set! settings 'username username)]
+   [("-p" "--password") password "the password to connect with" (hash-set! settings 'password password)]
+   [("-s" "--server") server "the server to connect with" (hash-set! settings 'server server)]
+   [("-P" "--port") port "the port to connect to" (hash-set! settings 'port (string->number port))]
+   [("-I" "--ignorefile") ignore-file "the location of a JSON file specifying what to ignore" (hash-set! settings 'ignore-file ignore-file)]
    #:args ()
-   (crawler credentials)))
+   (crawler settings)))
 
