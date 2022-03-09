@@ -7,11 +7,17 @@
 (require "reports/reports.rkt")
 (require "pii_spider/ignore.rkt")
 
+(module+ test
+  (require rackunit)
+  (require mock)
+  (require mock/rackunit))
+
 (provide crawler)
 
 (define (crawler settings #:connector [initialise-connection initialise-connection]
                  #:list-tables [list-tables list-tables]
-                 #:table-examiner [examine-table examine-table])
+                 #:table-examiner [examine-table examine-table]
+                 #:ignore-directives [generate-ignore-lists generate-ignore-lists])
   ; connect to the db
   (log-info "Connecting to the database")
   (define pgc (initialise-connection settings))
@@ -33,7 +39,7 @@
   (map (lambda (table)
          (log-info (format "Examining table ~a" table))
          ;; deal with taking some small number of rows vs scanning the entire thing
-         (define results (examine-table pgc table))
+         (define results (examine-table pgc ignores table))
          (save-report results)
          (update-html-summary-report table (string-append table ".html")))
        tables)
@@ -43,10 +49,8 @@
   report-location)
 
 (module+ test
-  (require rackunit)
-  (require mock)
-  (require mock/rackunit)
-
+  (define empty-ignore (ignore null (hasheq) (hasheq)))
+  (define ignore-mock (mock #:behavior (const empty-ignore)))
   (define-opaque test-connection)
   (define connector-mock (mock #:behavior (const test-connection)))
   (define test-list-tables '("test"))
@@ -57,7 +61,7 @@
                                              '((1 "email address") (1 "AU phone number"))))) 
   (define start-time (moment 1970))
   (define end-time (moment 2000 02 28 13 14 30))
-  (define test-examined-table (examined-table "two_rows" start-time end-time 2 test-two-rows))
+  (define test-examined-table (examined-table "two_rows" start-time end-time 2 test-two-rows #f))
   
 
   (define examine-tables-mock (mock #:behavior (const test-examined-table)))
@@ -79,8 +83,8 @@
     (check-mock-called-with? list-tables-mock (arguments test-connection)))
   (test-case "crawler examines each table"
     (crawler test-settings #:connector connector-mock
-             #:list-tables list-tables-mock #:table-examiner examine-tables-mock)
-    (check-mock-called-with? examine-tables-mock (arguments test-connection "test"))))
+             #:list-tables list-tables-mock #:table-examiner examine-tables-mock #:ignore-directives ignore-mock)
+    (check-mock-called-with? examine-tables-mock (arguments test-connection empty-ignore "test"))))
 
 (define (initialise-connection credentials #:connector [postgresql-connect postgresql-connect])
   (postgresql-connect #:user (hash-ref credentials 'username)
@@ -111,8 +115,11 @@
   ;; I get later
   (define start-time (now/moment))
   (define row-count (estimate-row-count connection table-name))
-  (define rows (retrieve-rows connection table-name))
   (define rules (list rules:email rules:au-phone-number rules:credit-card rules:au-tax-file-number))
+  ;; only examine the rows if the table is NOT ignored
+  (define rows (if (member table-name (ignore-tables ignores))
+                   null
+                   (retrieve-rows connection table-name)))
   (define results (examine-rows rows rules))
   (initialise-metadata table-name #:start-time start-time #:row-count row-count #:results results))
 
@@ -126,22 +133,28 @@
   
   ;;; TODO deal with table not existing error  
   (test-case "examine-table exectutes a row query with the required arguments"
-    (examine-table connector-mock "foo" #:row-function row-mock
+    (examine-table connector-mock empty-ignore "foo" #:row-function row-mock
                    #:row-estimate row-count-mock #:row-examiner row-examiner-mock)
     (check-mock-called-with? row-mock (arguments connector-mock "foo")))
 
   (test-case "examine-table checks the row count with the required arguments"
-    (examine-table connector-mock "foo" #:row-function row-mock
+    (examine-table connector-mock empty-ignore "foo" #:row-function row-mock
                    #:row-estimate row-count-mock #:row-examiner row-examiner-mock)
     (check-mock-called-with? row-count-mock (arguments connector-mock "foo")))
   
   (test-case "examine-table exectutes a row examiner with the required arguments"
-    (examine-table connector-mock "foo" #:row-function row-mock
+    (examine-table connector-mock empty-ignore "foo" #:row-function row-mock
                    #:row-estimate row-count-mock #:row-examiner row-examiner-mock)
     (check-mock-called-with? row-mock (arguments connector-mock "foo")))
+
+  (test-case "examine-table gives the row examiner no rows if the table should be ignored"
+    (mock-reset! row-examiner-mock)
+    (examine-table connector-mock (ignore '("foo") (hasheq) (hasheq)) "foo" #:row-function row-mock
+                   #:row-estimate row-count-mock #:row-examiner row-examiner-mock)
+    (check-mock-calls row-examiner-mock (list (arguments null (list rules:email rules:au-phone-number rules:credit-card rules:au-tax-file-number)))))
   
   (test-case "examine-table returns an examined-table struct with appropriate values"
-    (define result (examine-table connector-mock "foo" #:row-function row-mock #:row-estimate row-count-mock #:row-examiner row-examiner-mock))
+    (define result (examine-table connector-mock empty-ignore "foo" #:row-function row-mock #:row-estimate row-count-mock #:row-examiner row-examiner-mock))
     (check-equal? (examined-table-results result) examined-row-result)
     (check-equal? (examined-table-row-count result) 1)))
 
@@ -180,8 +193,9 @@
 (define (initialise-metadata table-name
                              #:start-time [start-time (now/moment)]
                              #:row-count [row-count 0]
-                             #:results [results empty])
-  (examined-table table-name start-time (now/moment) row-count results))
+                             #:results [results empty]
+                             #:ignored [ignored #f])
+  (examined-table table-name start-time (now/moment) row-count results ignored))
 
 (module+ test
   (test-case "initialise-metadata returns an examined-table"
@@ -203,7 +217,11 @@
     (check-equal? (seconds-between (examined-table-start-time (initialise-metadata "test")) (now/moment)) 0)) 
   (test-case "initialise-metadata returns with the start-time set if overriden"
     (define test-start-time (moment 2000))
-    (check-equal? (examined-table-start-time (initialise-metadata "test" #:start-time test-start-time)) test-start-time)))
+    (check-equal? (examined-table-start-time (initialise-metadata "test" #:start-time test-start-time)) test-start-time))
+  (test-case "initialise-metadata returns with the table ignored set to false by default"
+    (check-false (examined-table-ignored (initialise-metadata "test"))))
+  (test-case "initialise-metadata returns with the table ignored set if overriden"
+    (check-true (examined-table-ignored (initialise-metadata "test" #:ignored #t)))))
 
 (define (examine-rows rows rules #:examiner-function [crawl-for-pii crawl-for-pii])
   (map (lambda (row)
