@@ -2,7 +2,7 @@
 
 (require json)
 (require racket/port)
-(require "../structs.rkt")
+(require "structs.rkt")
 (module+ test
   (require racket/function)
   (require rackunit)

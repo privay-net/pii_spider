@@ -1,7 +1,7 @@
 #lang racket
 (require txexpr)
 (require gregor)
-(require "../structs.rkt")
+(require "../pii_spider/structs.rkt")
 
 (module+ test
   (require rackunit)

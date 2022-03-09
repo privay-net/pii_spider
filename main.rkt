@@ -1,5 +1,5 @@
 #lang racket/base
-(require "crawl.rkt")
+(require "pii_spider/crawl.rkt")
 
 (module+ main
   ;; (Optional) main submodule. Put code here if you need it to be executed when

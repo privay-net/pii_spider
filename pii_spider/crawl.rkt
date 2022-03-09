@@ -3,9 +3,9 @@
 (require db)
 (require gregor)
 (require "structs.rkt")
-(require (prefix-in rules: "pii/rules.rkt"))
-(require "reports/reports.rkt")
-(require "pii_spider/ignore.rkt")
+(require (prefix-in rules: "../pii/rules.rkt"))
+(require "../reports/reports.rkt")
+(require "ignore.rkt")
 
 (module+ test
   (require rackunit)
