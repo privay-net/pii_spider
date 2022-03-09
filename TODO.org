@@ -14,7 +14,10 @@ When the DB can't be connected to
 
 * After v0.1
 ** heroicons - put in CSS folder.
-** use koyo url parsing?
+** use koyo style for seperating packages
+find out how to have command line app, libs, docs and tests in packages
+** parse URLs for DB connections?
+does koyo have something worth looking at?
 ** run this out of a docker container
 ** take rows in batches
 ** log level command line flag
