@@ -2,7 +2,7 @@
 
 (require racket/struct)
 
-(provide (struct-out examined-row) (struct-out examined-table))
+(provide (struct-out examined-row) (struct-out examined-table) (struct-out ignore))
 
 (struct examined-row (id results)
   #:methods gen:custom-write
@@ -19,3 +19,11 @@
       (lambda (obj) (list (examined-table-name obj)
                           (examined-table-row-count obj)
                           (examined-table-end-time obj)))))]) 
+(struct ignore (tables columns rows)
+  #:methods gen:custom-write
+  [(define write-proc
+     (make-constructor-style-printer
+      (lambda (obj) 'ignores)
+      (lambda (obj) (list (ignore-tables obj)
+                          (ignore-columns obj)
+                          (ignore-rows obj)))))])
