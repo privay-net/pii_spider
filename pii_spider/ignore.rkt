@@ -9,17 +9,19 @@
   (require mock)
   (require mock/rackunit))
 
+(provide generate-ignore-lists)
+
 (define (generate-ignore-lists settings
                                #:file-check [file-exists? file-exists?]
                                #:ignore-directives [extract-ignore-directives extract-ignore-directives])
-  (define ignore-file (hash-ref settings 'ignore-file))
+  (define ignore-file (hash-ref settings 'ignoreFile))
   (log-info "checking for ignore file")
   (if (file-exists? ignore-file)
       (extract-ignore-directives ignore-file)
       (ignore null null null)))
 
 (module+ test
-  (define test-settings (hash 'ignore-file "ignore.json"))
+  (define test-settings (hash 'ignoreFile "ignore.json"))
   
   (test-case "generate-ignore-lists returns an empty ignore struct if there's no ignore file"
     (define mock-file-test (mock #:behavior (const #f)))

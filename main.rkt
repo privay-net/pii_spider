@@ -48,7 +48,7 @@
   (define settings (make-hash))
   (hash-set! settings 'server "localhost")
   (hash-set! settings 'port 5432)
-  (hash-set! settings 'ignore-file "ignore.json")
+  (hash-set! settings 'ignoreFile "ignore.json")
   
   (command-line
    #:program "pii_spider"

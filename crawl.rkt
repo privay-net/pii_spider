@@ -5,16 +5,21 @@
 (require "structs.rkt")
 (require (prefix-in rules: "pii/rules.rkt"))
 (require "reports/reports.rkt")
+(require "pii_spider/ignore.rkt")
 
 (provide crawler)
 
-(define (crawler db-credentials #:connector [initialise-connection initialise-connection]
+(define (crawler settings #:connector [initialise-connection initialise-connection]
                  #:list-tables [list-tables list-tables]
                  #:table-examiner [examine-table examine-table])
   ; connect to the db
   (log-info "Connecting to the database")
-  (define pgc (initialise-connection db-credentials))
+  (define pgc (initialise-connection settings))
 
+  ;  work out what to ignore
+  (log-info "Reading ignore file")
+  (define ignores (generate-ignore-lists settings))
+  
   ; find all the tables
   (log-info "Examining database structure")
   (define tables (list-tables pgc))
@@ -56,24 +61,24 @@
   
 
   (define examine-tables-mock (mock #:behavior (const test-examined-table)))
-  (define test-db-credentials (hash 'username "robert" 'password "bhujasample4$" 'database "pii" 'server "localhost" 'port "5432"))
+  (define test-settings (hash 'username "robert" 'password "bhujasample4$" 'database "pii" 'server "localhost" 'port "5432" 'ignoreFile "ignore.json"))
   
   (test-case "crawler returns the location of the summary report"
     (check-equal?
-     (crawler test-db-credentials
+     (crawler test-settings
               #:connector connector-mock
               #:list-tables list-tables-mock
               #:table-examiner examine-tables-mock) "output/index.html"))
   (test-case "crawler sends the db details to initialise-connection"
-    (crawler test-db-credentials #:connector connector-mock
+    (crawler test-settings #:connector connector-mock
              #:list-tables list-tables-mock #:table-examiner examine-tables-mock)
-    (check-mock-called-with? connector-mock (arguments test-db-credentials)))
+    (check-mock-called-with? connector-mock (arguments test-settings)))
   (test-case "crawler compiles a list of tables to examine"
-    (crawler test-db-credentials #:connector connector-mock
+    (crawler test-settings #:connector connector-mock
              #:list-tables list-tables-mock #:table-examiner examine-tables-mock)
     (check-mock-called-with? list-tables-mock (arguments test-connection)))
   (test-case "crawler examines each table"
-    (crawler test-db-credentials #:connector connector-mock
+    (crawler test-settings #:connector connector-mock
              #:list-tables list-tables-mock #:table-examiner examine-tables-mock)
     (check-mock-called-with? examine-tables-mock (arguments test-connection "test"))))
 
@@ -90,15 +95,15 @@
   ;;; TODO deal with a failed connection
   ;;; TODO pool connections
   (test-case "initialise-connection gets the connection for a database"
-    (initialise-connection test-db-credentials #:connector connector-mock)
+    (initialise-connection test-settings #:connector connector-mock)
     (check-mock-called-with? connector-mock
-                             (arguments #:database (hash-ref test-db-credentials 'database)
-                                        #:password (hash-ref test-db-credentials 'password)
-                                        #:user (hash-ref test-db-credentials 'username)
-                                        #:server (hash-ref test-db-credentials 'server)
-                                        #:port (hash-ref test-db-credentials 'port)))))
+                             (arguments #:database (hash-ref test-settings 'database)
+                                        #:password (hash-ref test-settings 'password)
+                                        #:user (hash-ref test-settings 'username)
+                                        #:server (hash-ref test-settings 'server)
+                                        #:port (hash-ref test-settings 'port)))))
 
-(define (examine-table connection table-name
+(define (examine-table connection ignores table-name
                        #:row-function [retrieve-rows retrieve-rows]
                        #:row-estimate [estimate-row-count estimate-row-count]
                        #:row-examiner [examine-rows examine-rows])
