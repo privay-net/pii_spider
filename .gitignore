@@ -5,4 +5,5 @@ coverage
 
 output
 
-pii_spider.log
+pii_agent.log
+ignore.json
