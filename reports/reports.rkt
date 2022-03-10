@@ -10,16 +10,23 @@
 
 (provide html-table-report save-report save-html-summary-report update-html-summary-report)
 
+(define (html-header)
+  (txexpr* 'head empty
+           (txexpr 'meta '((charset "UTF-8")))
+           (txexpr 'meta '((name "viewport")
+                           (content "width=device-width, initial-scale=1")))
+           (txexpr 'title empty '("PII Spider Report"))
+           (txexpr 'meta '((name "description")
+                           (content "Report on data discovered in this database")))
+           (txexpr 'link '((href "https://unpkg.com/tailwindcss@^1.0/dist/tailwind.min.css") (rel "stylesheet")))))
+(module+ test
+  (test-case "html-header makes a standard header including tailwind etc."
+    (define expected-result "<head><meta charset=\"UTF-8\"/><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"/><title>PII Spider Report</title><meta name=\"description\" content=\"Report on data discovered in this database\"/><link href=\"https://unpkg.com/tailwindcss@^1.0/dist/tailwind.min.css\" rel=\"stylesheet\"/></head>")
+    (check-equal? (xexpr->html (html-header)) expected-result)))
+
 (define (html-table-report table-results #:table-creator [row-table row-table] #:summary-creator [results-summary results-summary])
   (define report (txexpr* 'html '((lang "en") (class "no-js"))
-                          (txexpr* 'head empty
-                                   (txexpr 'meta '((charset "UTF-8")))
-                                   (txexpr 'meta '((name "viewport")
-                                                   (content "width=device-width, initial-scale=1")))
-                                   (txexpr 'title empty '("PII Spider Report"))
-                                   (txexpr 'meta '((name "description")
-                                                   (content "Report on PII discovered in this database")))
-                                   (txexpr 'link '((href "https://unpkg.com/tailwindcss@^1.0/dist/tailwind.min.css") (rel "stylesheet"))))
+                          (html-header)
                           (txexpr* 'body empty
                                    (txexpr* 'div '((class "min-w-screen min-h-screen bg-gray-200 flex-col p-3 overflow-auto"))
                                             (txexpr 'h1 '((class "text-center text-5xl font-extrabold")) (list (string-append "Report for table " (examined-table-name table-results))))
@@ -35,11 +42,11 @@
                                              '((1 "email address") (1 "AU phone number"))))) 
   (define start-time (moment 1970))
   (define end-time (moment 2000 02 28 13 14 30))
-  (define test-two-record-table (examined-table "two_rows" start-time end-time 2 test-two-rows))
-  (define test-zero-record-table (examined-table "no_rows" start-time end-time 0 test-no-rows))
+  (define test-two-record-table (examined-table "two_rows" start-time end-time 2 test-two-rows #f))
+  (define test-zero-record-table (examined-table "no_rows" start-time end-time 0 test-no-rows #f))
   
   (test-case "html-table-report produces a HTML report of the run"
-    (define result "<!DOCTYPE html><html lang=\"en\" class=\"no-js\"><head><meta charset=\"UTF-8\"/><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"/><title>PII Spider Report</title><meta name=\"description\" content=\"Report on PII discovered in this database\"/><link href=\"https://unpkg.com/tailwindcss@^1.0/dist/tailwind.min.css\" rel=\"stylesheet\"/></head><body><div class=\"min-w-screen min-h-screen bg-gray-200 flex-col p-3 overflow-auto\"><h1 class=\"text-center text-5xl font-extrabold\">Report for table no_rows</h1><p>mock summary</p><p>mock table</p></div></body></html>")
+    (define result "<!DOCTYPE html><html lang=\"en\" class=\"no-js\"><head><meta charset=\"UTF-8\"/><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"/><title>PII Spider Report</title><meta name=\"description\" content=\"Report on data discovered in this database\"/><link href=\"https://unpkg.com/tailwindcss@^1.0/dist/tailwind.min.css\" rel=\"stylesheet\"/></head><body><div class=\"min-w-screen min-h-screen bg-gray-200 flex-col p-3 overflow-auto\"><h1 class=\"text-center text-5xl font-extrabold\">Report for table no_rows</h1><p>mock summary</p><p>mock table</p></div></body></html>")
     (define table-creator-mock (mock #:behavior (const (txexpr 'p empty (list "mock table")))))
     (define summary-mock (mock #:behavior (const (txexpr 'p empty (list "mock summary")))))
     (check-equal? (html-table-report test-zero-record-table #:table-creator table-creator-mock #:summary-creator summary-mock) result))
@@ -48,7 +55,7 @@
     (html-table-report test-zero-record-table #:table-creator table-creator-mock)
     (check-mock-called-with?  table-creator-mock (arguments (examined-table-results test-zero-record-table))))
   (test-case "html-table-report produces a report for the table"
-    (define result "<!DOCTYPE html><html lang=\"en\" class=\"no-js\"><head><meta charset=\"UTF-8\"/><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"/><title>PII Spider Report</title><meta name=\"description\" content=\"Report on PII discovered in this database\"/><link href=\"https://unpkg.com/tailwindcss@^1.0/dist/tailwind.min.css\" rel=\"stylesheet\"/></head><body><div class=\"min-w-screen min-h-screen bg-gray-200 flex-col p-3 overflow-auto\"><h1 class=\"text-center text-5xl font-extrabold\">Report for table two_rows</h1><div class=\"p-3 m-2 bg-white rounded-md\"><h2 class=\"text-3xl\">Statistics</h2><table class=\"table-auto w-full\"><tr><td class=\"text-right pr-4\">Start Time:</td><td>1970-01-01 00:00:00</td></tr><tr><td class=\"text-right pr-4\">End Time:</td><td>2000-02-28 13:14:00</td></tr><tr><td class=\"text-right pr-4\">Rows Examined:</td><td>2</td></tr></table></div><div class=\"p-3 m-2 bg-white rounded-md\"><h2 class=\"text-3xl\">Results</h2><table class=\"table-auto w-full\"><thead><tr><th>Key</th><th>Rule</th></tr></thead><tbody><tr class=\"border-b-2 border-gray-300\"><td class=\"text-center\">1</td><td><ul><li class=\"float-left p-1 m-4 border-2 rounded-full\"><span class=\"p1\">email address</span></li><li class=\"float-left p-1 m-4 border-2 rounded-full\"><span class=\"p1\">AU phone number</span></li></ul></td></tr><tr class=\"border-b-2 border-gray-300\"><td class=\"text-center\">2</td><td><ul><li class=\"float-left p-1 m-4 border-2 rounded-full\"><span class=\"p1\">email address</span></li><li class=\"float-left p-1 m-4 border-2 rounded-full\"><span class=\"p1\">AU phone number</span></li></ul></td></tr></tbody></table></div></div></body></html>")
+    (define result "<!DOCTYPE html><html lang=\"en\" class=\"no-js\"><head><meta charset=\"UTF-8\"/><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"/><title>PII Spider Report</title><meta name=\"description\" content=\"Report on data discovered in this database\"/><link href=\"https://unpkg.com/tailwindcss@^1.0/dist/tailwind.min.css\" rel=\"stylesheet\"/></head><body><div class=\"min-w-screen min-h-screen bg-gray-200 flex-col p-3 overflow-auto\"><h1 class=\"text-center text-5xl font-extrabold\">Report for table two_rows</h1><div class=\"p-3 m-2 bg-white rounded-md\"><h2 class=\"text-3xl\">Statistics</h2><table class=\"table-auto w-full\"><tr><td class=\"text-right pr-4\">Start Time:</td><td>1970-01-01 00:00:00</td></tr><tr><td class=\"text-right pr-4\">End Time:</td><td>2000-02-28 13:14:00</td></tr><tr><td class=\"text-right pr-4\">Rows Examined:</td><td>2</td></tr></table></div><div class=\"p-3 m-2 bg-white rounded-md\"><h2 class=\"text-3xl\">Results</h2><table class=\"table-auto w-full\"><thead><tr><th>Key</th><th>Rule</th></tr></thead><tbody><tr class=\"border-b-2 border-gray-300\"><td class=\"text-center\">1</td><td><ul><li class=\"float-left p-1 m-4 border-2 rounded-full\"><span class=\"p1\">email address</span></li><li class=\"float-left p-1 m-4 border-2 rounded-full\"><span class=\"p1\">AU phone number</span></li></ul></td></tr><tr class=\"border-b-2 border-gray-300\"><td class=\"text-center\">2</td><td><ul><li class=\"float-left p-1 m-4 border-2 rounded-full\"><span class=\"p1\">email address</span></li><li class=\"float-left p-1 m-4 border-2 rounded-full\"><span class=\"p1\">AU phone number</span></li></ul></td></tr></tbody></table></div></div></body></html>")
     (check-equal? (html-table-report test-two-record-table) result)))
 
 (define (results-summary results)
@@ -187,21 +194,18 @@
 
 (define (initial-html-summary-report)
   (define report (txexpr* 'html '((lang "en") (class "no-js"))
-                          (txexpr* 'head empty
-                                   (txexpr 'meta '((charset "UTF-8")))
-                                   (txexpr 'meta '((name "viewport")
-                                                   (content "width=device-width, initial-scale=1")))
-                                   (txexpr 'title empty '("PII Spider Report"))
-                                   (txexpr 'meta '((name "description")
-                                                   (content "Report on PII discovered in this database"))))
+                          (html-header)
                           (txexpr* 'body empty
-                                   (txexpr 'h1 empty '("Summary of PII Spider report run"))
-                                   (txexpr 'ul empty '("")))))
+                                   (txexpr* 'div '((class "min-w-screen min-h-screen bg-gray-200 flex-col p-3 overflow-auto"))
+                                            (txexpr* 'div '((class "p-3 m-2 bg-white rounded-md"))
+                                                     (txexpr 'h1 '((class "text-center text-5xl font-extrabold")) '("Summary of PII Spider report run")))
+                                            (txexpr* 'div '((class "p-3 m-2 bg-white rounded-md"))
+                                                     (txexpr 'table '((class "table-auto w-full")) '("")))))))
   (string-append "<!DOCTYPE html>" (xexpr->html report)))
 
 (module+ test
   (test-case "initial-html-summary-report returns a HTML summary report"
-    (define result "<!DOCTYPE html><html lang=\"en\" class=\"no-js\"><head><meta charset=\"UTF-8\"/><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"/><title>PII Spider Report</title><meta name=\"description\" content=\"Report on PII discovered in this database\"/></head><body><h1>Summary of PII Spider report run</h1><ul></ul></body></html>")
+    (define result "<!DOCTYPE html><html lang=\"en\" class=\"no-js\"><head><meta charset=\"UTF-8\"/><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"/><title>PII Spider Report</title><meta name=\"description\" content=\"Report on data discovered in this database\"/><link href=\"https://unpkg.com/tailwindcss@^1.0/dist/tailwind.min.css\" rel=\"stylesheet\"/></head><body><div class=\"min-w-screen min-h-screen bg-gray-200 flex-col p-3 overflow-auto\"><div class=\"p-3 m-2 bg-white rounded-md\"><h1 class=\"text-center text-5xl font-extrabold\">Summary of PII Spider report run</h1></div><div class=\"p-3 m-2 bg-white rounded-md\"><table class=\"table-auto w-full\"></table></div></div></body></html>")
     (check-equal? (initial-html-summary-report) result)))
 
 (define (save-html-summary-report #:output-dir [output-dir "output"]
@@ -224,9 +228,9 @@
   (define-opaque test-mkdir)
   (define mkdir-mock (mock #:behavior (const test-mkdir)))
 
-  (test-case "save=html-summary-report returns the rpoert location"
+  (test-case "save=html-summary-report returns the report location"
     (check-equal? (save-html-summary-report #:mkdir mkdir-mock #:output-file output-file-mock) "output/index.html"))
-  (test-case "save=html-summary-report returns the rpoert location"
+  (test-case "save=html-summary-report returns the report location"
     (check-equal? (save-html-summary-report #:output-dir "test" #:mkdir mkdir-mock #:output-file output-file-mock) "test/index.html"))
   (test-case "save-html-report-summary will make the output directory"
     (save-html-summary-report #:mkdir mkdir-mock #:output-file output-file-mock)
@@ -237,14 +241,17 @@
     (define result (car (mock-call-results (car (mock-calls output-file-mock)))))
     (check-equal? result (initial-html-summary-report))))
 
-(define (update-html-summary-report table-name location
+(define (update-html-summary-report table-name location ignores
                                     #:input-file [open-input-file open-input-file]
                                     #:output-file [call-with-output-file call-with-output-file])
   (define summary-location "output/index.html")
   (define report
     (port->string (open-input-file summary-location) #:close? #t))
-  (define list-item (string-append "<li><a href=\"" location "\">" table-name "</a></li>"))
-  (define list-bottom (string-replace report "</ul>" (string-append list-item "</ul>")))
+  (define ignored-status (if (member table-name (ignore-tables ignores))
+                             "<td class=\"float-right\">IGNORED</td>"
+                             "<td></td>"))
+  (define list-item (string-append "<tr><td><a href=\"" location "\">" table-name "</a></td>" ignored-status "</tr>"))
+  (define list-bottom (string-replace report "</table>" (string-append list-item "</table>")))
 
   (call-with-output-file summary-location
     (lambda (out)
@@ -252,22 +259,30 @@
   #t)
 
 (module+ test
-  (define mock-report (lambda (filename) (open-input-string "<ul></ul>")))
+  (define mock-report (lambda (filename) (open-input-string "<table></table>")))
   (define input-file-mock (mock #:behavior mock-report))
-
+  (define ignore-nothing (ignore null (hasheq) (hasheq)))
   (test-case "update-html-summary-report opens index.html"
-    (update-html-summary-report "test" "test.html" #:input-file input-file-mock #:output-file output-file-mock)
+    (update-html-summary-report "test" "test.html" ignore-nothing #:input-file input-file-mock #:output-file output-file-mock)
     (check-mock-called-with? input-file-mock (arguments "output/index.html")))
   (test-case "update-html-summary-report writes index.html but only once"
     (mock-reset! input-file-mock)
     (mock-reset! output-file-mock)
-    (update-html-summary-report "test" "test.html" #:input-file input-file-mock #:output-file output-file-mock)
+    (update-html-summary-report "test" "test.html" ignore-nothing #:input-file input-file-mock #:output-file output-file-mock)
     (check-mock-num-calls output-file-mock 1))
-  (test-case "update-html-summary-report puts the report back"
+  (test-case "update-html-summary-report writes in a table row for table"
     (mock-reset! input-file-mock)
     (mock-reset! output-file-mock)
-    (define expectation "<ul><li><a href=\"test.html\">test</a></li></ul>")
-    (update-html-summary-report "test" "test.html" #:input-file input-file-mock #:output-file output-file-mock)
+    (define expectation "<table><tr><td><a href=\"test.html\">test</a></td><td></td></tr></table>")
+    (update-html-summary-report "test" "test.html" ignore-nothing #:input-file input-file-mock #:output-file output-file-mock)
+    (define result (car (mock-call-results (car (mock-calls output-file-mock)))))
+    (check-equal? result expectation))
+  (test-case "update-html-summary-report writes in a table row for tables that are ignored"
+    (mock-reset! input-file-mock)
+    (mock-reset! output-file-mock)
+    (define ignore-test (ignore '("test") (hasheq) (hasheq)))
+    (define expectation "<table><tr><td><a href=\"test.html\">test</a></td><td class=\"float-right\">IGNORED</td></tr></table>")
+    (update-html-summary-report "test" "test.html" ignore-test #:input-file input-file-mock #:output-file output-file-mock)
     (define result (car (mock-call-results (car (mock-calls output-file-mock)))))
     (check-equal? result expectation)))
 
@@ -286,7 +301,7 @@
   output-file-name)
 
 (module+ test
-  (define examined-table-result (examined-table "two_rows" start-time end-time 2 test-two-rows))
+  (define examined-table-result (examined-table "two_rows" start-time end-time 2 test-two-rows #f))
   (define test-report "HTML report")
   (define report-mock (mock #:behavior (const test-report)))
   

@@ -41,7 +41,7 @@
          ;; deal with taking some small number of rows vs scanning the entire thing
          (define results (examine-table pgc ignores table))
          (save-report results)
-         (update-html-summary-report table (string-append table ".html")))
+         (update-html-summary-report table (string-append table ".html") ignores))
        tables)
 
   ; return summary report location
