@@ -4,7 +4,6 @@ When the DB can't be connected to
 1 stop the run with a halting exception
 2 provide a useful error message
 ** scribble docs
-** https://racket.discourse.group/t/logging-custodians-and-larger-applications/766/2 - threading for logs
 ** https://racket.discourse.group/t/making-my-function-more-elegant/417/10 - better inner loops
 
 
@@ -30,4 +29,6 @@ does koyo have something worth looking at?
 *** wide tables (10, 1000, 10000 columns)
 *** many rules (1, 100, 1000 rules)
 ** Score each kind of result (e.g. CC number 100, email 10)
+** write tests for logging.rkt
+the reason this is tricky is that it's a massive pot of side-effects and it uses threads
 
