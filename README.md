@@ -8,6 +8,7 @@ We in technology are on the cusp of regularly upending people's lives.  If we as
 2. Privacy is safety
 This is not a computing-specific point but people who talk about privacy being unecessary often assume there's no consequence of a loss of privacy.  There is.  In his book Data and Goliath Bruce Schneier says:
 > “There's a strong physiological basis for privacy. Biologist Peter Watts makes the point that a desire for privacy is innate: mammals in particular don't respond well to surveillance. We consider it a physical threat, because animals in the natural world are surveilled by predators. Surveillance makes us feel like prey, just as it makes the surveillors act like predators.”
+
 So having privacy means we're not acting like prey so we can feel safe.  We should be able to give that to people.
 
 ## Quickstart
