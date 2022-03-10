@@ -176,10 +176,11 @@
     (check-equal? (key->string test-key) result)))
 
 (define (rule-list rules)
-  (if (empty? rules)
+  (define triggered-rules (filter (lambda (rule) (< 0 (car rule))) rules))
+  (if (empty? triggered-rules)
       (txexpr 'p empty '("No rules to display."))
       (txexpr 'ul empty
-              (for/list ([rule rules])
+              (for/list ([rule triggered-rules])
                 (quasiquote (li ((class "float-left p-1 m-4 border-2 rounded-full")) (span ((class "p1")) (unquote (cadr rule)))))))))
 
 (module+ test
@@ -190,7 +191,11 @@
   (test-case "rule-list will return an unordered list of each rule"
     (define result "<ul><li class=\"float-left p-1 m-4 border-2 rounded-full\"><span class=\"p1\">email address</span></li><li class=\"float-left p-1 m-4 border-2 rounded-full\"><span class=\"p1\">AU phone number</span></li></ul>")
     (define two-rules '((1 "email address") (1 "AU phone number")))
-    (check-equal? (xexpr->html (rule-list two-rules)) result)))
+    (check-equal? (xexpr->html (rule-list two-rules)) result))
+  (test-case "rule-list will return an unordered list of each rule except rules that haven't been triggered"
+    (define result "<ul><li class=\"float-left p-1 m-4 border-2 rounded-full\"><span class=\"p1\">email address</span></li></ul>")
+    (define one-triggered-rule '((1 "email address") (0 "AU phone number")))
+    (check-equal? (xexpr->html (rule-list one-triggered-rule)) result)))
 
 (define (initial-html-summary-report)
   (define report (txexpr* 'html '((lang "en") (class "no-js"))
