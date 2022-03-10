@@ -1,0 +1,9 @@
+{
+  "ignoreTables" : ["ignore_me", "blah"],
+  "ignoreRows" : {
+    "users" : [1]
+  },
+  "ignoreColumns" : {
+    "users" : ["cc"]
+  }
+}
