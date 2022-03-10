@@ -6,6 +6,7 @@
 (require (prefix-in rules: "../pii/rules.rkt"))
 (require "../reports/reports.rkt")
 (require "ignore.rkt")
+(require "logging.rkt")
 
 (module+ test
   (require rackunit)
@@ -18,6 +19,7 @@
                  #:list-tables [list-tables list-tables]
                  #:table-examiner [examine-table examine-table]
                  #:ignore-directives [generate-ignore-lists generate-ignore-lists])
+  
   ; connect to the db
   (log-info "Connecting to the database")
   (define pgc (initialise-connection settings))
