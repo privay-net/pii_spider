@@ -1,8 +1,7 @@
 #lang racket/base
 
 (require racket/cmdline)
-(require "pii_spider/crawl.rkt")
-(require "pii_spider/logging.rkt")
+(require pii_spider)
 
 (module+ main
   (define logging-thread log-thread)
