@@ -1,6 +1,6 @@
 # Racket
 compiled/
-/doc/
+pii_spider-doc/doc/
 coverage
 
 output
