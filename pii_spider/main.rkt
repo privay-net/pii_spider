@@ -5,10 +5,7 @@
 
 (module+ main
   (define logging-thread log-thread)
-  (define settings (make-hash))
-  (hash-set! settings 'server "localhost")
-  (hash-set! settings 'port 5432)
-  (hash-set! settings 'ignoreFile "ignore.json")
+  (define settings (default-settings))
   
   (command-line
    #:program "pii_spider"
