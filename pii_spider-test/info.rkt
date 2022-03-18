@@ -7,9 +7,9 @@
                      "cover"
                      "cover-coveralls"
                      "mock-rackunit"
-                     "pii_spider-lib"
-                     "relation"))
-(define test-include-paths '("tests"))
-(define compile-omit-paths '("tests"))
+                     "pii_spider-lib"))
+
+(define update-implies '("pii_spider-lib"))
+  
 (define test-omit-paths '("dev" "coverage"))
 (define clean '("compiled" "tests/compiled" "tests/private/compiled"))
