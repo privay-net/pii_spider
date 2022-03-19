@@ -1,7 +1,9 @@
 #lang info
 
 (define collection "pii_spider")
-(define deps '("base"))
+(define deps '("base"
+               "txexpr"
+               "gregor"))
 (define build-deps '("rackunit-lib"
                      "mock"
                      "cover"

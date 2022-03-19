@@ -16,12 +16,15 @@
                         (hash-set! settings 'username username)]
    [("-p" "--password") password "the password to connect with"
                         (hash-set! settings 'password password)]
-   [("-s" "--server") server "the server to connect with"
+   [("-s" "--server") server "the server to connect with defaults to localhost"
                       (hash-set! settings 'server server)]
-   [("-P" "--port") port "the port to connect to"
+   [("-P" "--port") port "the port to connect to defaults to 5432"
                     (hash-set! settings 'port (string->number port))]
-   [("-I" "--ignorefile") ignore-file "the location of a JSON file specifying what to ignore"
+   [("-I" "--ignorefile") ignore-file
+                          "the location of a JSON file specifying what to ignore, defaults to ignore.json"
                           (hash-set! settings 'ignoreFile ignore-file)]
+   [("-O" "--outputDir") output-dir
+                         "the directory to output to, defaults to current directory/output" (hash-set! settings 'outputDir output-dir)]
    #:args ()
    (crawler settings))
   

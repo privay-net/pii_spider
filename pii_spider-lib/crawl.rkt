@@ -33,7 +33,7 @@
 
   ;; initialise summary report
   (log-info "Initialise the output report")
-  (define report-location (save-html-summary-report))
+  (define report-location (save-html-summary-report #:output-dir (hash-ref settings 'outputDir)))
   
   ;; grab rows of data from each table, return pii rows
   ;;  TODO Note everything after listing tables should be parallel-ised to make it faster
@@ -41,13 +41,12 @@
          (log-info (format "Examining table ~a" table))
          ;; deal with taking some small number of rows vs scanning the entire thing
          (define results (examine-table pgc ignores table))
-         (save-report results)
+         (save-report results #:output-dir (hash-ref settings 'outputDir))
          (update-html-summary-report table (string-append table ".html") ignores))
        tables)
 
   ; return summary report location
-  (log-info "Run completed.")
-  report-location)
+  (log-info (format "Run report at ~a" (path->string report-location))))
 
 (module+ test
   (define empty-ignore (ignore null (hasheq) (hasheq)))
@@ -66,14 +65,11 @@
   
 
   (define examine-tables-mock (mock #:behavior (const test-examined-table)))
-  (define test-settings (hash 'username "robert" 'password "bhujasample4$" 'database "pii" 'server "localhost" 'port "5432" 'ignoreFile "ignore.json"))
+  (define test-settings (hash 'username "robert" 'password "bhujasample4$"
+                              'database "pii" 'server "localhost"
+                              'port "5432" 'ignoreFile "ignore.json"
+                              'outputDir (build-path (current-directory) "test")))
   
-  (test-case "crawler returns the location of the summary report"
-    (check-equal?
-     (crawler test-settings
-              #:connector connector-mock
-              #:list-tables list-tables-mock
-              #:table-examiner examine-tables-mock) "output/index.html"))
   (test-case "crawler sends the db details to initialise-connection"
     (crawler test-settings #:connector connector-mock
              #:list-tables list-tables-mock #:table-examiner examine-tables-mock)

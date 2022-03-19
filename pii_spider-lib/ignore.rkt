@@ -1,3 +1,4 @@
+
 #lang racket/base
 
 (require json)
@@ -15,7 +16,7 @@
                                #:file-check [file-exists? file-exists?]
                                #:ignore-directives [extract-ignore-directives extract-ignore-directives])
   (define ignore-file (hash-ref settings 'ignoreFile))
-  (log-info "checking for ignore file")
+  (log-info "Checking for ignore file")
   (if (file-exists? ignore-file)
       (extract-ignore-directives ignore-file)
       (ignore null null null)))

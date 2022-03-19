@@ -9,6 +9,9 @@
   (hash-set! result 'server "localhost")
   (hash-set! result 'port  5432)
   (hash-set! result 'ignoreFile  "ignore.json")
+  (define output-dir (build-path (current-directory) "output"))
+  (log-debug (format "Default output directory is ~a" (path->string output-dir)))
+  (hash-set! result 'outputDir output-dir)
   result)
 
 (define (add-environment-vars settings)
@@ -18,7 +21,8 @@
                                  'ignoreFile "PII_SPIDER_IGNOREFILE"
                                  'database "PII_SPIDER_DATABASE"
                                  'username "PII_SPIDER_USERNAME"
-                                 'password "PII_SPIDER_PASSWORD"))
+                                 'password "PII_SPIDER_PASSWORD"
+                                 'outputDir "PII_SPIDER_OUTPUTDIR"))
   (hash-map env-var-mappings (lambda (key val)
                                (hash-set! env-settings key (getenv val))))
   

@@ -79,12 +79,19 @@
                )
    (test-suite "save-html-summary-report"
                (test-case "returns the report location"
-                 (check-equal? (save-html-summary-report #:mkdir mkdir-mock #:output-file output-file-mock) "output/index.html"))
+                 (define result (build-path (current-directory) "output/index.html"))
+                 (check-equal? (save-html-summary-report #:mkdir mkdir-mock #:output-file output-file-mock) result))
                (test-case "returns the report location"
-                 (check-equal? (save-html-summary-report #:output-dir "test" #:mkdir mkdir-mock #:output-file output-file-mock) "test/index.html"))
+                 (define output-dir (build-path (current-directory) "test"))
+                 (define result (build-path output-dir "index.html"))
+                 (check-equal? (save-html-summary-report
+                                #:output-dir output-dir #:mkdir mkdir-mock
+                                #:output-file output-file-mock)
+                               result))
                (test-case "will make the output directory"
+                 (define output-dir (build-path (current-directory) "output"))
                  (save-html-summary-report #:mkdir mkdir-mock #:output-file output-file-mock)
-                 (check-mock-called-with? mkdir-mock (arguments "output")))
+                 (check-mock-called-with? mkdir-mock (arguments output-dir)))
                (test-case "saves the report output "
                  (mock-reset! output-file-mock)
                  (save-html-summary-report #:mkdir mkdir-mock #:output-file output-file-mock)

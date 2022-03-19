@@ -167,10 +167,11 @@
                                                      (txexpr 'table '((class "table-auto w-full")) '("")))))))
   (string-append "<!DOCTYPE html>" (xexpr->html report)))
 
-(define (save-html-summary-report #:output-dir [output-dir "output"]
-                                  #:mkdir [make-directory* make-directory*]
-                                  #:output-file [call-with-output-file call-with-output-file])
-  (define report-location (string-append output-dir "/" "index.html"))
+(define (save-html-summary-report
+         #:output-dir [output-dir (build-path (current-directory) "output")]
+         #:mkdir [make-directory* make-directory*]
+         #:output-file [call-with-output-file call-with-output-file])
+  (define report-location (build-path output-dir "index.html"))
   (make-directory* output-dir)
   (define report (initial-html-summary-report))
   (call-with-output-file report-location 
@@ -202,11 +203,14 @@
                      #:save-file [call-with-output-file call-with-output-file]
                      #:mkdir [make-directory* make-directory*])
   (define report (html-table-report examined-table-record))
-  (log-info (format "output directory for ~a is ~a"
-                    (examined-table-name examined-table-record) (path->string output-dir)))
+  (log-debug (format "output directory for ~a is ~a"
+                     (examined-table-name examined-table-record) (path->string output-dir)))
   (make-directory* output-dir)
   (define output-file-name (string-append (path->string output-dir) "/"
                                           (examined-table-name examined-table-record) ".html"))
+  (log-debug (format "output file for ~a is ~a"
+                     (examined-table-name examined-table-record) (path->string output-file-name)))
+
   (call-with-output-file output-file-name
     #:exists 'truncate
     (lambda (out)
