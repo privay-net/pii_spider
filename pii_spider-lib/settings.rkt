@@ -13,12 +13,14 @@
 
 (define (add-environment-vars settings)
   (define env-settings (make-hash))
-  (hash-set! env-settings 'server (getenv "PII_SPIDER_SERVER"))
-  (hash-set! env-settings 'port (getenv "PII_SPIDER_PORT"))
-  (hash-set! env-settings 'ignore-file (getenv "PII_SPIDER_IGNOREFILE"))
-  (hash-set! env-settings 'database (getenv "PII_SPIDER_DATABASE"))
-  (hash-set! env-settings 'username (getenv "PII_SPIDER_USERNAME"))
-  (hash-set! env-settings 'password (getenv "PII_SPIDER_PASSWORD"))
+  (define env-var-mappings (hash 'server "PII_SPIDER_SERVER"
+                                 'port "PII_SPIDER_PORT"
+                                 'ignoreFile "PII_SPIDER_IGNOREFILE"
+                                 'database "PII_SPIDER_DATABASE"
+                                 'username "PII_SPIDER_USERNAME"
+                                 'password "PII_SPIDER_PASSWORD"))
+  (hash-map env-var-mappings (lambda (key val)
+                               (hash-set! env-settings key (getenv val))))
   
   (hash-map env-settings (lambda (key val) (unless val
                                              (hash-remove! env-settings key))))
