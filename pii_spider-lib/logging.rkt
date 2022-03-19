@@ -3,7 +3,7 @@
 
 (provide log-thread)
 
-(define-logger agent)
+(define-logger agent #:parent (current-logger))
 (define agent-logger-receiver (make-log-receiver agent-logger 'info 'agent))
 (current-logger agent-logger)
 
@@ -19,7 +19,7 @@
 
 (define log-destinations
   (list (list write-to-file "pii_agent.log")
-        (list write-to-port (current-error-port))))
+        (list write-to-port (current-output-port))))
 
 (define (send-log-content content destinations)
   (unless (null? destinations)
