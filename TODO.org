@@ -1,5 +1,4 @@
 * For v0.1
-** set the output directory to be relative to the currecnt working directory
 ** write error handling
 When the DB can't be connected to
 1 stop the run with a halting exception
@@ -16,6 +15,7 @@ does koyo have something worth looking at?
 ** take rows in batches
 ** log level command line flag
 ** ignore rows and columns
+** There is at least one test that writes file output when it shouldn't in reports.rkt
 
 * After v0.2
 ** Write out the results to file for JSON processing
