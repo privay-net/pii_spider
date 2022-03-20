@@ -8,9 +8,7 @@
 (require "../structs.rkt")
 
 (module+ test
-  (require rackunit)
-  (require mock)
-  (require mock/rackunit))
+  (require rackunit))
 
 (provide html-table-report save-report save-html-summary-report update-html-summary-report
          initial-html-summary-report results-summary row-table)
@@ -157,14 +155,23 @@
     (check-equal? (xexpr->html (rule-list one-triggered-rule)) result)))
 
 (define (initial-html-summary-report)
-  (define report (txexpr* 'html '((lang "en") (class "no-js"))
-                          (html-header)
-                          (txexpr* 'body empty
-                                   (txexpr* 'div '((class "min-w-screen min-h-screen bg-gray-200 flex-col p-3 overflow-auto"))
-                                            (txexpr* 'div '((class "p-3 m-2 bg-white rounded-md"))
-                                                     (txexpr 'h1 '((class "text-center text-5xl font-extrabold")) '("Summary of PII Spider report run")))
-                                            (txexpr* 'div '((class "p-3 m-2 bg-white rounded-md"))
-                                                     (txexpr 'table '((class "table-auto w-full")) '("")))))))
+  (define report
+    (txexpr*
+     'html '((lang "en") (class "no-js"))
+     (html-header)
+     (txexpr*
+      'body empty
+      (txexpr*
+       'div '((class "min-w-screen min-h-screen bg-gray-200 flex-col p-3 overflow-auto"))
+       (txexpr*
+        'div '((class "p-3 m-2 bg-white rounded-md"))
+        (txexpr
+         'h1
+         '((class "text-center text-5xl font-extrabold"))
+         '("Summary of PII Spider report run")))
+       (txexpr*
+        'div '((class "p-3 m-2 bg-white rounded-md"))
+        (txexpr 'table '((class "table-auto w-full")) '("")))))))
   (string-append "<!DOCTYPE html>" (xexpr->html report)))
 
 (define (save-html-summary-report

@@ -17,7 +17,10 @@
 (define (crawler settings #:connector [initialise-connection initialise-connection]
                  #:list-tables [list-tables list-tables]
                  #:table-examiner [examine-table examine-table]
-                 #:ignore-directives [generate-ignore-lists generate-ignore-lists])
+                 #:ignore-directives [generate-ignore-lists generate-ignore-lists]
+                 #:summary-reporter [save-html-summary-report save-html-summary-report]
+                 #:table-reporter [save-report save-report]
+                 #:summary-updater [update-html-summary-report update-html-summary-report])
   
   ; connect to the db
   (log-info "Connecting to the database")
@@ -69,18 +72,39 @@
                               'database "pii" 'server "localhost"
                               'port "5432" 'ignoreFile "ignore.json"
                               'outputDir (build-path (current-directory) "test")))
+
+  (define save-html-summary-report-mock (mock
+                                         #:behavior (const (build-path (current-directory) "test"))))
+  (define-opaque test-file)
+  (define save-report-mock (mock
+                     #:behavior (const test-file)))
+  (define update-html-summary-report-mock (mock
+                     #:behavior (const test-file)))
   
   (test-case "crawler sends the db details to initialise-connection"
     (crawler test-settings #:connector connector-mock
-             #:list-tables list-tables-mock #:table-examiner examine-tables-mock)
+             #:list-tables list-tables-mock
+             #:table-examiner examine-tables-mock
+             #:summary-reporter save-html-summary-report-mock
+             #:table-reporter save-report-mock
+             #:summary-updater update-html-summary-report-mock)
     (check-mock-called-with? connector-mock (arguments test-settings)))
   (test-case "crawler compiles a list of tables to examine"
     (crawler test-settings #:connector connector-mock
-             #:list-tables list-tables-mock #:table-examiner examine-tables-mock)
+             #:list-tables list-tables-mock
+             #:table-examiner examine-tables-mock
+             #:summary-reporter save-html-summary-report-mock
+             #:table-reporter save-report-mock
+             #:summary-updater update-html-summary-report-mock)
     (check-mock-called-with? list-tables-mock (arguments test-connection)))
   (test-case "crawler examines each table"
     (crawler test-settings #:connector connector-mock
-             #:list-tables list-tables-mock #:table-examiner examine-tables-mock #:ignore-directives ignore-mock)
+             #:list-tables list-tables-mock
+             #:table-examiner examine-tables-mock
+             #:ignore-directives ignore-mock
+             #:summary-reporter save-html-summary-report-mock
+             #:table-reporter save-report-mock
+             #:summary-updater update-html-summary-report-mock)
     (check-mock-called-with? examine-tables-mock (arguments test-connection empty-ignore "test"))))
 
 (define (initialise-connection credentials #:connector [postgresql-connect postgresql-connect])
