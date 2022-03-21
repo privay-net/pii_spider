@@ -1,6 +1,7 @@
 #lang racket/base
 
 (require racket/cmdline)
+(require racket/exn)
 (require pii_spider)
 
 (module+ main
@@ -25,8 +26,13 @@
                           (hash-set! settings 'ignoreFile ignore-file)]
    [("-O" "--outputDir") output-dir
                          "the directory to output to, defaults to current directory/output" (hash-set! settings 'outputDir output-dir)]
-   #:args ()
-   (crawl-postgresql settings))
+   #:args () (void))
+
+  (with-handlers ([exn:fail? (lambda (e)
+                               (log-error "Runtime Error:")
+                               (log-error (exn->string e))
+                               (exit 1))])
+    (crawl-postgresql settings))  
   
   (thread-send logging-thread 'time-to-stop)
   (thread-wait logging-thread))
