@@ -26,7 +26,7 @@
    [("-O" "--outputDir") output-dir
                          "the directory to output to, defaults to current directory/output" (hash-set! settings 'outputDir output-dir)]
    #:args ()
-   (crawler settings))
+   (crawl-postgresql settings))
   
   (thread-send logging-thread 'time-to-stop)
   (thread-wait logging-thread))

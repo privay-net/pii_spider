@@ -3,10 +3,10 @@
 (require racket/vector)
 (require db)
 (require gregor)
-(require "structs.rkt")
-(require (prefix-in rules: "pii/rules.rkt"))
-(require "reports/reports.rkt")
-(require "ignore.rkt")
+(require "../structs.rkt")
+(require (prefix-in rules: "../pii/rules.rkt"))
+(require "../reports/reports.rkt")
+(require "../ignore.rkt")
 
 (module+ test
   (require rackunit)
@@ -14,9 +14,9 @@
   (require mock/rackunit)
   (require racket/function))
 
-(provide crawler)
+(provide crawl-postgresql)
 
-(define (crawler settings #:connector [initialise-connection initialise-connection]
+(define (crawl-postgresql settings #:connector [initialise-connection initialise-connection]
                  #:list-tables [list-tables list-tables]
                  #:table-examiner [examine-table examine-table]
                  #:ignore-directives [generate-ignore-lists generate-ignore-lists]
@@ -83,24 +83,24 @@
   (define update-html-summary-report-mock (mock
                      #:behavior (const test-file)))
   
-  (test-case "crawler sends the db details to initialise-connection"
-    (crawler test-settings #:connector connector-mock
+  (test-case "crawl-postgresql sends the db details to initialise-connection"
+    (crawl-postgresql test-settings #:connector connector-mock
              #:list-tables list-tables-mock
              #:table-examiner examine-tables-mock
              #:summary-reporter save-html-summary-report-mock
              #:table-reporter save-report-mock
              #:summary-updater update-html-summary-report-mock)
     (check-mock-called-with? connector-mock (arguments test-settings)))
-  (test-case "crawler compiles a list of tables to examine"
-    (crawler test-settings #:connector connector-mock
+  (test-case "crawl-postgresql compiles a list of tables to examine"
+    (crawl-postgresql test-settings #:connector connector-mock
              #:list-tables list-tables-mock
              #:table-examiner examine-tables-mock
              #:summary-reporter save-html-summary-report-mock
              #:table-reporter save-report-mock
              #:summary-updater update-html-summary-report-mock)
     (check-mock-called-with? list-tables-mock (arguments test-connection)))
-  (test-case "crawler examines each table"
-    (crawler test-settings #:connector connector-mock
+  (test-case "crawl-postgresql examines each table"
+    (crawl-postgresql test-settings #:connector connector-mock
              #:list-tables list-tables-mock
              #:table-examiner examine-tables-mock
              #:ignore-directives ignore-mock
