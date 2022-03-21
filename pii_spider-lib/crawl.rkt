@@ -1,5 +1,6 @@
-#lang racket
+#lang racket/base
 
+(require racket/vector)
 (require db)
 (require gregor)
 (require "structs.rkt")
@@ -10,7 +11,8 @@
 (module+ test
   (require rackunit)
   (require mock)
-  (require mock/rackunit))
+  (require mock/rackunit)
+  (require racket/function))
 
 (provide crawler)
 
@@ -214,7 +216,7 @@
 (define (initialise-metadata table-name
                              #:start-time [start-time (now/moment)]
                              #:row-count [row-count 0]
-                             #:results [results empty]
+                             #:results [results null]
                              #:ignored [ignored #f])
   (examined-table table-name start-time (now/moment) row-count results ignored))
 
@@ -228,7 +230,7 @@
   (test-case "initialise-metadata returns with the table row-count set if overriden"
     (check-equal? (examined-table-row-count (initialise-metadata "test" #:row-count 1)) 1))
   (test-case "initialise-metadata returns with the results set to empty by default"
-    (check-equal? (examined-table-results (initialise-metadata "test")) empty))
+    (check-equal? (examined-table-results (initialise-metadata "test")) null))
   (test-case "initialise-metadata returns with the results set if overriden"
     (check-equal? (examined-table-results
                    (initialise-metadata "test" #:results '(examined-rows)))
