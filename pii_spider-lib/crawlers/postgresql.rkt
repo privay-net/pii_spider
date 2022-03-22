@@ -1,12 +1,14 @@
 #lang racket/base
 
 (require racket/vector)
+(require racket/exn)
 (require db)
 (require gregor)
 (require "../structs.rkt")
 (require (prefix-in rules: "../pii/rules.rkt"))
 (require "../reports/reports.rkt")
 (require "../ignore.rkt")
+(require "../exceptions.rkt")
 
 (module+ test
   (require rackunit)
@@ -72,7 +74,7 @@
   (define examine-tables-mock (mock #:behavior (const test-examined-table)))
   (define test-settings (hash 'username "robert" 'password "bhujasample4$"
                               'database "pii" 'server "localhost"
-                              'port "5432" 'ignoreFile "ignore.json"
+                              'port 5432 'ignoreFile "ignore.json"
                               'outputDir (build-path (current-directory) "test")))
 
   (define save-html-summary-report-mock (mock
@@ -110,16 +112,20 @@
     (check-mock-called-with? examine-tables-mock (arguments test-connection empty-ignore "test"))))
 
 (define (initialise-connection credentials #:connector [postgresql-connect postgresql-connect])
-  (postgresql-connect #:user (hash-ref credentials 'username)
-                      #:database (hash-ref credentials 'database)
-                      #:password (hash-ref credentials 'password)
-                      #:server (hash-ref credentials 'server)
-                      #:port (hash-ref credentials 'port)))
+  (with-handlers ([exn:fail:network:errno? (lambda (e)
+                                             (log-info "Could not connect to the database server")
+                                             (log-debug (exn->string e)))]
+                  [exn:fail:sql? (lambda (e)
+                                  (log-info "Could not connect to the database with your credentials")
+                                  (log-debug (exn->string e)))])
+    (postgresql-connect #:user (hash-ref credentials 'username)
+                        #:database (hash-ref credentials 'database)
+                        #:password (hash-ref credentials 'password)
+                        #:server (hash-ref credentials 'server)
+                        #:port (hash-ref credentials 'port))))
 
 
 (module+ test
-  ;;; TODO make the connection dynamic from env vars
-  ;;; TODO deal with a failed connection
   ;;; TODO pool connections
   (test-case "initialise-connection gets the connection for a database"
     (initialise-connection test-settings #:connector connector-mock)
@@ -128,7 +134,19 @@
                                         #:password (hash-ref test-settings 'password)
                                         #:user (hash-ref test-settings 'username)
                                         #:server (hash-ref test-settings 'server)
-                                        #:port (hash-ref test-settings 'port)))))
+                                        #:port (hash-ref test-settings 'port))))
+  (test-case "initialise-connection throws an exception when it can't connect"
+    ;; error 61 is the I can't open that tcp port apparently
+    (define connector-mock (mock #:behavior (thunk* (raise (exn:fail:network:errno "test" (current-continuation-marks) '(61 . posix))))))
+    (check-not-exn (lambda () (initialise-connection test-settings #:connector connector-mock))))
+  (test-case "initialise-connection throws an exception when the auth or db details are incorrect"
+    (define connector-mock (mock #:behavior (thunk* (raise (exn:fail:sql "test-sql" (current-continuation-marks) "test 2" "test 3" )))))
+    ;; (define connector-mock (mock #:behavior (thunk* (postgresql-connect #:database (hash-ref test-settings 'database)
+    ;;                                                                     #:password "wrong"
+    ;;                                                                     #:user (hash-ref test-settings 'username)
+    ;;                                                                     #:server (hash-ref test-settings 'server)
+    ;;                                                                     #:port (hash-ref test-settings 'port)))))
+    (check-not-exn (lambda () (initialise-connection test-settings #:connector connector-mock)))))
 
 (define (examine-table connection ignores table-name
                        #:row-function [retrieve-rows retrieve-rows]
