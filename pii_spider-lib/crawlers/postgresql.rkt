@@ -14,7 +14,17 @@
   (require rackunit)
   (require mock)
   (require mock/rackunit)
-  (require racket/function))
+  (require racket/function)
+  
+  (define-opaque test-connection)
+  (define connector-mock (mock #:behavior (const test-connection)))
+  (define test-settings (hash 'username "robert" 'password "bhujasample4$"
+                              'database "pii" 'server "localhost"
+                              'port 5432 'ignoreFile "ignore.json"
+                              'outputDir (build-path (current-directory) "test")))
+  (define empty-ignore (ignore null (hasheq) (hasheq))))
+
+
 
 (provide crawl-postgresql)
 
@@ -29,6 +39,8 @@
   ; connect to the db
   (log-info "Connecting to the database")
   (define pgc (initialise-connection settings))
+  (when (equal? void pgc)
+    (raise-db-connection-error settings))
 
   ;  work out what to ignore
   (log-info "Reading ignore file")
@@ -54,62 +66,6 @@
 
   ; return summary report location
   (log-info (format "Run report at ~a" (path->string report-location))))
-
-(module+ test
-  (define empty-ignore (ignore null (hasheq) (hasheq)))
-  (define ignore-mock (mock #:behavior (const empty-ignore)))
-  (define-opaque test-connection)
-  (define connector-mock (mock #:behavior (const test-connection)))
-  (define test-list-tables '("test"))
-  (define list-tables-mock (mock #:behavior (const test-list-tables)))
-  (define test-two-rows (list  (examined-row (hash "key" '(1))
-                                             '((1 "email address") (1 "AU phone number")))
-                               (examined-row (hash "key" '(2))
-                                             '((1 "email address") (1 "AU phone number"))))) 
-  (define start-time (moment 1970))
-  (define end-time (moment 2000 02 28 13 14 30))
-  (define test-examined-table (examined-table "two_rows" start-time end-time 2 test-two-rows #f))
-  
-
-  (define examine-tables-mock (mock #:behavior (const test-examined-table)))
-  (define test-settings (hash 'username "robert" 'password "bhujasample4$"
-                              'database "pii" 'server "localhost"
-                              'port 5432 'ignoreFile "ignore.json"
-                              'outputDir (build-path (current-directory) "test")))
-
-  (define save-html-summary-report-mock (mock
-                                         #:behavior (const (build-path (current-directory) "test"))))
-  (define-opaque test-file)
-  (define save-report-mock (mock
-                     #:behavior (const test-file)))
-  (define update-html-summary-report-mock (mock
-                     #:behavior (const test-file)))
-  
-  (test-case "crawl-postgresql sends the db details to initialise-connection"
-    (crawl-postgresql test-settings #:connector connector-mock
-             #:list-tables list-tables-mock
-             #:table-examiner examine-tables-mock
-             #:summary-reporter save-html-summary-report-mock
-             #:table-reporter save-report-mock
-             #:summary-updater update-html-summary-report-mock)
-    (check-mock-called-with? connector-mock (arguments test-settings)))
-  (test-case "crawl-postgresql compiles a list of tables to examine"
-    (crawl-postgresql test-settings #:connector connector-mock
-             #:list-tables list-tables-mock
-             #:table-examiner examine-tables-mock
-             #:summary-reporter save-html-summary-report-mock
-             #:table-reporter save-report-mock
-             #:summary-updater update-html-summary-report-mock)
-    (check-mock-called-with? list-tables-mock (arguments test-connection)))
-  (test-case "crawl-postgresql examines each table"
-    (crawl-postgresql test-settings #:connector connector-mock
-             #:list-tables list-tables-mock
-             #:table-examiner examine-tables-mock
-             #:ignore-directives ignore-mock
-             #:summary-reporter save-html-summary-report-mock
-             #:table-reporter save-report-mock
-             #:summary-updater update-html-summary-report-mock)
-    (check-mock-called-with? examine-tables-mock (arguments test-connection empty-ignore "test"))))
 
 (define (initialise-connection credentials #:connector [postgresql-connect postgresql-connect])
   (with-handlers ([exn:fail:network:errno? (lambda (e)

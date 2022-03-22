@@ -1,8 +1,9 @@
-#lang racket
+#lang racket/base
 
 (require racket/struct)
 
-(provide (struct-out examined-row) (struct-out examined-table) (struct-out ignore))
+(provide (struct-out examined-row) (struct-out examined-table) (struct-out ignore)
+         (struct-out exn:fail:pii-spider) (struct-out exn:fail:pii-spider:db-connection))
 
 (struct examined-row (id results)
   #:methods gen:custom-write
@@ -28,3 +29,5 @@
       (lambda (obj) (list (ignore-tables obj)
                           (ignore-columns obj)
                           (ignore-rows obj)))))])
+(struct exn:fail:pii-spider exn:fail ())
+(struct exn:fail:pii-spider:db-connection exn:fail:pii-spider ())
