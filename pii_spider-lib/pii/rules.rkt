@@ -1,6 +1,9 @@
-#lang racket
+#lang racket/base
 
-(provide email au-phone-number credit-card au-tax-file-number)
+(require racket/match)
+(require racket/string)
+
+(provide email au-phone-number credit-card au-tax-file-number password)
 
 ;; TODO have this maybe with levels of expense for deeper checking i.e. level 1 - regexp level 2 - domain check level 3 - test email
 (define (email candidate)
@@ -9,44 +12,11 @@
       (list "email address" (regexp-match? simple-email-regex candidate))
       (list "email address" #f)))
 
-(module+ test
-  (require rackunit
-           mock
-           mock/rackunit)
-  (test-case "returns the rule name"
-    (check-equal? (car (email "test")) "email address"))
-  (test-case "returns #t for an email address"
-    (check-true (cadr (email "robert@test.com"))))
-  (test-case "returns #t for an email address inside a string"
-    (check-true (cadr (email "the string is about robert@test.com being tested"))))
-  (test-case "returns #f when not an email address"
-    (check-false (cadr (email "test"))))
-  (test-case "returns #f when not a string"
-    (check-false (cadr (email 1)))))
-
 (define (au-phone-number candidate)
   (define simple-regex #px"[+61|0]\\d{3}\\s?\\d{3}\\s?\\d{3}")
   (if (string? candidate)
       (list "AU phone number" (regexp-match? simple-regex candidate))
       (list "AU phone number" #f)))
-
-(module+ test
-  (test-case "returns the rule name"
-    (check-equal? (car (au-phone-number "test")) "AU phone number"))
-  (test-case "returns #t for an AU phone number"
-    (check-true (cadr (au-phone-number "0412345678"))))
-  (test-case "returns #t for an AU phone number with country prefix"
-    (check-true (cadr (au-phone-number "+61412345678"))))
-  (test-case "returns #t for an AU phone number with spaces"
-    (check-true (cadr (au-phone-number "0412 345 678")))
-    (check-true (cadr (au-phone-number "0412 345678"))))
-(test-case "returns #t for an AU phone number inside a larger string"
-    (check-true (cadr (au-phone-number "we should ring 0412 345 678")))
-    (check-true (cadr (au-phone-number "0412 345678 is a nice phone number")))) 
-  (test-case "returns #f when not an AU phone number"
-    (check-false (cadr (au-phone-number "test"))))
-  (test-case "returns #f when not a string"
-    (check-false (cadr (au-phone-number 1)))))
 
 ;; Check this handy helper for more CC number formats
 ;; https://en.wikipedia.org/wiki/Payment_card_number
@@ -64,61 +34,24 @@
                               (regexp-match? amex-regex candidate)))
       (list "Credit Card" #f)))
 
-(module+ test
-  (test-case "returns the rule name"
-    (check-equal? (car (credit-card "test")) "Credit Card"))
-  (test-case "returns #t for a valid visa card number"
-    (check-true (cadr (credit-card "4111111111111111"))))
-  (test-case "returns #t for a valid visa card number with spaces"
-    (check-true (cadr (credit-card "4111 1111 1111 1111"))))
-  (test-case "returns #t for a valid visa card number with spaces inside a string"
-    (check-true (cadr (credit-card "a credit card called 4111 1111 1111 1111 is hidden here"))))
-  (test-case "returns #t for a valid visa card number with hyphens"
-    (check-true (cadr (credit-card "4111-1111-1111-1111"))))
-  (test-case "returns #t for a valid visa card number with spaces and hypens"
-    (check-true (cadr (credit-card "4111 1111-1111 1111"))))
-  (test-case "returns #t for a valid amex card number"
-    (check-true (cadr (credit-card "371238839571772"))))
-  (test-case "returns #t for a valid amex card number with spaces"
-    (check-true (cadr (credit-card "3712 388395 71772"))))
-  (test-case "returns #f when not a credit card number"
-    (check-false (cadr (credit-card "test")))))
-
 (define (au-tax-file-number candidate)
   (if (string? candidate)
       (list "AU Tax File Number" (validate-tfn candidate))
       (list "AU Tax File Number" #f)))
 
-(module+ test
-  (test-case "returns the rule name"
-    (check-equal? (car (au-tax-file-number "test")) "AU Tax File Number"))
-  (test-case "returns #f when not a AU tax file number"
-    (check-false (cadr (au-tax-file-number "test"))))
-  (test-case "returns #t for a valid AU TFN"
-    (check-true (cadr (au-tax-file-number "123456782"))))
-  (test-case "returns #t for a valid AU TFN with spaces"
-    (check-true (cadr (au-tax-file-number "123 456 782")))))
-
 ;; see https://www.clearwater.com.au/code/tfn for the procedure used to calculate this
 (define (validate-tfn candidate)
   (define tfn-regex (pregexp "(\\d{3})\\s?(\\d{3})\\s?(\\d{3})"))
   (define magic-weights '(1 4 3 7 5 8 6 9 10))
-  (if (regexp-match tfn-regex candidate)
-      (zero?
-       (remainder 
-        (foldr + 0 (map * magic-weights
-                        (map string->number
-                             (map string
-                                  (string->list
-                                   (foldr string-append ""
-                                          (cdr (regexp-match tfn-regex candidate)))))))) 11))
-      #f))
-
-(module+ test
-  (test-case "returns #t for a valid AU TFN"
-    (check-true (validate-tfn "123456782")))
-  (test-case "returns #f for an invalid AU TFN"
-    (check-false (validate-tfn "123456789"))))
+  (define 0-code (char->integer #\0))
+  (match candidate
+    [(pregexp tfn-regex (cons _ (app string-append* s)))
+     (zero? (remainder
+             (for/sum ([c (in-string s)]
+                       [w (in-list magic-weights)])
+               (* (- (char->integer c) 0-code) w))
+             11))]
+    [_ #f]))
 
 ;; TODO have a go at medicare
 
@@ -128,10 +61,3 @@
       (list "password" (regexp-match? simple-regex candidate))
       (list "password" #f)))
 
-(module+ test
-   (test-case "returns the rule name"
-    (check-equal? (car (password "test")) "password"))
-  (test-case "returns #f when not a likely password"
-    (check-false (cadr (password "test"))))
-  (test-case "returns #t for a likely password preceeded by the word password"
-    (check-true (cadr (password "password: passw0rd")))))
