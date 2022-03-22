@@ -54,7 +54,7 @@
                         #:summary-updater update-html-summary-report-mock)
       (check-mock-called-with? connector-mock (arguments test-settings)))
      (test-case "crawl-postgresql raises an exception when initialise-connection fails"
-       (define connector-mock (mock #:behavior (const void)))
+       (define connector-mock (mock #:behavior (const (void))))
        (define crawl-attempt (lambda () 
                                (crawl-postgresql test-settings #:connector connector-mock
                                                  #:list-tables list-tables-mock

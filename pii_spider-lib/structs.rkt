@@ -29,5 +29,6 @@
       (lambda (obj) (list (ignore-tables obj)
                           (ignore-columns obj)
                           (ignore-rows obj)))))])
+
 (struct exn:fail:pii-spider exn:fail ())
 (struct exn:fail:pii-spider:db-connection exn:fail:pii-spider ())

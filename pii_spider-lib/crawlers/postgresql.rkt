@@ -39,7 +39,7 @@
   ; connect to the db
   (log-info "Connecting to the database")
   (define pgc (initialise-connection settings))
-  (when (equal? void pgc)
+  (when (void? pgc)
     (raise-db-connection-error settings))
 
   ;  work out what to ignore
