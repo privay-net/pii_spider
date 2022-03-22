@@ -1,20 +1,15 @@
-* For v0.1
-** run tests on github actions
-
-* After v0.1
-** heroicons - put in CSS folder.
-** parse URLs for DB connections?
-does koyo have something worth looking at?
+* v0.2
 ** run this out of a docker container
+** Write out the results to file for JSON processing
+** Send the results to a webapp
+** Need to make a progress reporting web app
+
+* v0.3
 ** take rows in batches
 ** log level command line flag
 ** ignore rows and columns
-** There is at least one test that writes file output when it shouldn't in reports.rkt
 
-* After v0.2
-** Write out the results to file for JSON processing
-** Send the results to a webapp
-** Need to make a progress reporting web app.
+* After v0.3
 ** stop using SELECT * and move to explicit columns
 ** support mysql
 ** profile speed over:
@@ -24,4 +19,6 @@ does koyo have something worth looking at?
 ** Score each kind of result (e.g. CC number 100, email 10)
 ** write tests for logging.rkt
 the reason this is tricky is that it's a massive pot of side-effects and it uses threads
-
+** heroicons - put in CSS folder.
+** parse URLs for DB connections?
+does koyo have something worth looking at?
