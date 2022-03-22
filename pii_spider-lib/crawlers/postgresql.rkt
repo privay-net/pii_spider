@@ -19,12 +19,12 @@
 (provide crawl-postgresql)
 
 (define (crawl-postgresql settings #:connector [initialise-connection initialise-connection]
-                 #:list-tables [list-tables list-tables]
-                 #:table-examiner [examine-table examine-table]
-                 #:ignore-directives [generate-ignore-lists generate-ignore-lists]
-                 #:summary-reporter [save-html-summary-report save-html-summary-report]
-                 #:table-reporter [save-report save-report]
-                 #:summary-updater [update-html-summary-report update-html-summary-report])
+                          #:list-tables [list-tables list-tables]
+                          #:table-examiner [examine-table examine-table]
+                          #:ignore-directives [generate-ignore-lists generate-ignore-lists]
+                          #:summary-reporter [save-html-summary-report save-html-summary-report]
+                          #:table-reporter [save-report save-report]
+                          #:summary-updater [update-html-summary-report update-html-summary-report])
   
   ; connect to the db
   (log-info "Connecting to the database")
@@ -127,6 +127,12 @@
 
 (module+ test
   ;;; TODO pool connections
+  ;; This piece of code gives you a handy tester for what the connector really does when you run it.
+  ;; (define connector-mock (mock #:behavior (thunk* (postgresql-connect #:database (hash-ref test-settings 'database)
+  ;;                                                                     #:password (hash-ref test-settings 'password)
+  ;;                                                                     #:user (hash-ref test-settings 'username)
+  ;;                                                                     #:server (hash-ref test-settings 'server)
+  ;;                                                                     #:port (hash-ref test-settings 'port)))))
   (test-case "initialise-connection gets the connection for a database"
     (initialise-connection test-settings #:connector connector-mock)
     (check-mock-called-with? connector-mock
@@ -135,18 +141,17 @@
                                         #:user (hash-ref test-settings 'username)
                                         #:server (hash-ref test-settings 'server)
                                         #:port (hash-ref test-settings 'port))))
-  (test-case "initialise-connection throws an exception when it can't connect"
-    ;; error 61 is the I can't open that tcp port apparently
+  (test-case "initialise-connection deals with the exception when it can't connect"
+    ;; error 61 is the error number for I can't open that tcp port apparently
     (define connector-mock (mock #:behavior (thunk* (raise (exn:fail:network:errno "test" (current-continuation-marks) '(61 . posix))))))
     (check-not-exn (lambda () (initialise-connection test-settings #:connector connector-mock))))
-  (test-case "initialise-connection throws an exception when the auth or db details are incorrect"
+  (test-case "initialise-connection deals with the exception when the auth or db details are incorrect"
     (define connector-mock (mock #:behavior (thunk* (raise (exn:fail:sql "test-sql" (current-continuation-marks) "test 2" "test 3" )))))
-    ;; (define connector-mock (mock #:behavior (thunk* (postgresql-connect #:database (hash-ref test-settings 'database)
-    ;;                                                                     #:password "wrong"
-    ;;                                                                     #:user (hash-ref test-settings 'username)
-    ;;                                                                     #:server (hash-ref test-settings 'server)
-    ;;                                                                     #:port (hash-ref test-settings 'port)))))
-    (check-not-exn (lambda () (initialise-connection test-settings #:connector connector-mock)))))
+    (check-not-exn (lambda () (initialise-connection test-settings #:connector connector-mock))))
+  (test-case "initialise-connection returns void when it can't connect"
+    ;; error 61 is the error number for I can't open that tcp port apparently
+    (define connector-mock (mock #:behavior (thunk* (raise (exn:fail:network:errno "test" (current-continuation-marks) '(61 . posix))))))
+    (check-true (void? (initialise-connection test-settings #:connector connector-mock)))))
 
 (define (examine-table connection ignores table-name
                        #:row-function [retrieve-rows retrieve-rows]
