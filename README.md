@@ -1,5 +1,5 @@
 [![MIT License](https://img.shields.io/apm/l/atomic-design-ui.svg?)](https://github.com/privay-net/pii_spider/blob/main/LICENSE)
-[![GitHub Release](https://img.shields.io/github/release/privay-net/pii_spider.svg?style=flat)]() 
+![GitHub Release (latest by date including pre-releases)](https://img.shields.io/github/v/release/privay-net/pii_spider?display_name=tag&include_prereleases)
 [![Issues](https://img.shields.io/github/issues-raw/privay-net/pii_spider.svg?maxAge=25000)](https://github.com/privay-net/pii_spider/issues) 
 ![main build](https://github.com/privay-net/pii_spider/actions/workflows/test.yml/badge.svg?branch=main)
 
