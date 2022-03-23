@@ -6,7 +6,7 @@
 (require gregor)
 (require "../structs.rkt")
 (require (prefix-in rules: "../pii/rules.rkt"))
-(require "../reports/reports.rkt")
+(require "../reports/html.rkt")
 (require "../ignore.rkt")
 (require "../exceptions.rkt")
 

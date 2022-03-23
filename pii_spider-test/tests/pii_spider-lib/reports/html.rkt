@@ -6,7 +6,7 @@
 (require mock/rackunit)
 (require txexpr)
 (require gregor)
-(require pii_spider/reports/reports)
+(require pii_spider/reports/html)
 (require pii_spider/structs)
 
 (define start-time (moment 1970))
