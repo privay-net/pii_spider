@@ -1,3 +1,8 @@
+[![MIT License](https://img.shields.io/apm/l/atomic-design-ui.svg?)](https://github.com/robertpostill/pii_spider/blob/main/LICENSE)
+[![GitHub Release](https://img.shields.io/github/release/tterb/PlayMusic.svg?style=flat)]() 
+[![Issues](https://img.shields.io/github/issues-raw/tterb/PlayMusic.svg?maxAge=25000)](https://github.com/privay-net/pii_spider/issues) 
+![main build](https://github.com/github/docs/actions/workflows/main.yml/badge.svg?branch=main)
+
 # pii_spider
 pii_spider is a tool that helps you find PII or sensitive data in a database.  The idea is that you don't know anything but a database connection and pii_spider will look in all your tables and tell what's there.
 
