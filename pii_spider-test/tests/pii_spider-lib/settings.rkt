@@ -1,9 +1,7 @@
 #lang racket/base
 
 (require pii_spider/settings
-         rackunit
-         mock
-         mock/rackunit)
+         rackunit)
 
 (provide settings-tests)
 
@@ -19,7 +17,9 @@
     (test-case "returns a default for port of 5432"
       (check-equal? (hash-ref (default-settings) 'port) 5432))
     (test-case "returns a default for ignoreFile of ignore.json"
-      (check-equal? (hash-ref (default-settings) 'ignoreFile) "ignore.json")))
+      (check-equal? (hash-ref (default-settings) 'ignoreFile) "ignore.json"))
+    (test-case "returns a default for daemon of false"
+      (check-false (hash-ref (default-settings) 'daemon))))
    (test-suite
     "add-environment-vars"
     (test-case "returns the settings hash"

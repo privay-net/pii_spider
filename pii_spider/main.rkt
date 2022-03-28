@@ -21,6 +21,8 @@
                       (hash-set! settings 'server server)]
    [("-P" "--port") port "the port to connect to defaults to 5432"
                     (hash-set! settings 'port (string->number port))]
+   [("-D" "--daemon")  "the app should be started as a daemon"
+                       (hash-set! settings 'daemon #t)]
    [("-I" "--ignorefile") ignore-file
                           "the location of a JSON file specifying what to ignore, defaults to ignore.json"
                           (hash-set! settings 'ignoreFile ignore-file)]

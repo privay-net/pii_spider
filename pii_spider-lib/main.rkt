@@ -11,4 +11,6 @@
          pii_spider/pii/rules
          pii_spider/reports/html
          pii_spider/structs
-         pii_spider/settings)
+         pii_spider/settings
+         pii_spider/exceptions
+         pii_spider/daemon)

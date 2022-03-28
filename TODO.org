@@ -8,6 +8,8 @@
 ** take rows in batches
 ** log level command line flag
 ** ignore rows and columns
+** write a settings form that makes sure required flags are present
+If you try running the app without database credentials it will fail non-gracefully
 
 * After v0.3
 ** stop using SELECT * and move to explicit columns
