@@ -3,11 +3,13 @@
 (require racket/function
          racket/port
          json
+         net/url
          pii_spider/daemon
          rackunit
          mock
          mock/rackunit
-         web-server/http/response-structs)
+         web-server/http/response-structs
+         pii_spider/structs)
 
 (provide daemon-tests)
 
@@ -38,7 +40,31 @@
       (define mock-request (mock #:behavior (const (void))))
       (define result (examine mock-request))
       (check-equal? (call-with-output-bytes (response-output result))
-                    (jsexpr->bytes #hash((test . #t))))))))
+                    (jsexpr->bytes #hash((test . #t))))))
+   (test-suite
+    "404-responder"
+    (test-case "404-responder returns a 404"
+      (define mock-request (mock #:behavior (const (void))))
+      (define result (404-responder mock-request))
+      (check-equal? (response-code result) 404))
+    (test-case "404-responder returns JSON"
+      (define mock-request (mock #:behavior (const (void))))
+      (define result (404-responder mock-request))
+      (check-equal? (call-with-output-bytes (response-output result))
+                    (jsexpr->bytes null))))
+(test-suite
+    "500-responder"
+    (test-case "500-responder returns a status code of 500"
+      (define test-url (string->url "http://localhost"))
+      (define ex (exn:fail:pii-spider "test error" (current-continuation-marks)))
+      (define result (500-responder test-url ex))
+      (check-equal? (response-code result) 500))
+    (test-case "500-responder returns JSON for a successful response"
+      (define test-url (string->url "http://localhost"))
+      (define ex (exn:fail:pii-spider "test error" (current-continuation-marks)))
+      (define result (500-responder test-url ex))
+      (check-equal? (call-with-output-bytes (response-output result))
+                    (jsexpr->bytes #hash((hasError . #t))))))))
 
 (module+ test
   (require rackunit/text-ui)
