@@ -2,6 +2,7 @@
 
 (require racket/function
          racket/port
+         racket/logging
          json
          net/url
          pii_spider/daemon
@@ -57,12 +58,28 @@
     (test-case "500-responder returns a status code of 500"
       (define test-url (string->url "http://localhost"))
       (define ex (exn:fail:pii-spider "test error" (current-continuation-marks)))
-      (define result (500-responder test-url ex))
+      (define test-logger (make-logger #f (current-logger) 'none #f))
+      (define result (let ([my-log (open-output-nowhere)])
+                       (with-logging-to-port
+                         my-log
+                         (lambda ()
+                           (current-logger test-logger)
+                           (500-responder test-url ex))
+                         'error
+                         #:logger test-logger)))
       (check-equal? (response-code result) 500))
     (test-case "500-responder returns JSON for a successful response"
       (define test-url (string->url "http://localhost"))
       (define ex (exn:fail:pii-spider "test error" (current-continuation-marks)))
-      (define result (500-responder test-url ex))
+      (define test-logger (make-logger #f (current-logger) 'none #f))
+      (define result (let ([my-log (open-output-nowhere)])
+                       (with-logging-to-port
+                         my-log
+                         (lambda ()
+                           (current-logger test-logger)
+                           (500-responder test-url ex))
+                         'error
+                         #:logger test-logger)))
       (check-equal? (call-with-output-bytes (response-output result))
                     (jsexpr->bytes #hash((hasError . #t))))))))
 
