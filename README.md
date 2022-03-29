@@ -21,11 +21,13 @@ So having privacy means we're not acting like prey so we can feel safe.  We shou
     $ racket main.rkt --username db_user --database pii --password 'mypassword'
     $ open output/index.html
 
+## Daemon
+Part of the aim here is to have something that can be remotely controlled.  So I've started putting together a small deamon to accept remote requests.  Note that this is *EXPERMIENTAL* it has no practical safeguards yet and is more about thinking of how this could be done than readying it for production use.
+
 ## More details
 You'll find more details in the scribble documentation for this app.
 
 ## License
-
-    pii_spider is licensed under the MIT License see LICENSE for more details.
+pii_spider is licensed under the MIT License see LICENSE for more details.
 
 
