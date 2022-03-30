@@ -5,7 +5,6 @@
 
 (define-logger agent #:parent (current-logger))
 (define agent-logger-receiver (make-log-receiver agent-logger 'info 'agent))
-(current-logger agent-logger)
 
 (define (write-to-file destination content)
   (with-output-to-file destination

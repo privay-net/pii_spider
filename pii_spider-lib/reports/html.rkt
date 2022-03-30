@@ -216,7 +216,7 @@
   (define output-file-name (string-append (path->string output-dir) "/"
                                           (examined-table-name examined-table-record) ".html"))
   (log-debug (format "output file for ~a is ~a"
-                     (examined-table-name examined-table-record) (path->string output-file-name)))
+                     (examined-table-name examined-table-record) output-file-name))
 
   (call-with-output-file output-file-name
     #:exists 'truncate

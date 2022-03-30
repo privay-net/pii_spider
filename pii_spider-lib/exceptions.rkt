@@ -4,7 +4,7 @@
 (provide raise-db-connection-error)
 
 (define (raise-db-connection-error settings)
-  (log-debug settings)
+  (log-debug (format "DB Connection Settings: \n ~a" settings))
   (raise (exn:fail:pii-spider:db-connection
           (format "Could not connect to: database")
           (current-continuation-marks))))

@@ -125,15 +125,15 @@
     "save-report"
     (test-case "returns the name of the file it saved if it works"
       (define result (path->string (build-path (current-directory) "output/two_rows.html")))
-      (check-equal? (save-report examined-table-result #:save-file output-file-mock
-                                 #:mkdir mkdir-mock) result))
+      (define output (save-report examined-table-result #:save-file output-file-mock
+                                 #:mkdir mkdir-mock))
+      (check-equal? output result))
     (test-case "returns the name of the file it saved if the output-dir is specified"
       (define result (path->string (build-path (current-directory) "example/two_rows.html")))
-      (check-equal?
-       (save-report examined-table-result
+      (define output (save-report examined-table-result
                     #:output-dir (build-path (current-directory) "example")
-                    #:save-file output-file-mock #:mkdir mkdir-mock)
-       result))
+                    #:save-file output-file-mock #:mkdir mkdir-mock))
+      (check-equal? output result))
     (test-case "save-report generates a HTML report via html-table-report"
       (mock-reset! output-file-mock)
       (save-report examined-table-result #:html-report report-mock
