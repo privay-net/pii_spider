@@ -6,7 +6,6 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    environment: test
     strategy:
       matrix:
         racket-variant: ['CS']
@@ -27,4 +26,6 @@ jobs:
       - name: Run Tests
         run: make test
       - name: Generate Coverage Report
+        env:
+          COVERALLS_REPO_TOKEN: ${{ secrets.COVERALLS_REPO_TOKEN }}
         run: make cover-coveralls
