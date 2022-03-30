@@ -1,14 +1,15 @@
 #lang racket/base
 
-(require racket/vector)
-(require racket/exn)
-(require db)
-(require gregor)
-(require "../structs.rkt")
-(require (prefix-in rules: "../pii/rules.rkt"))
-(require "../reports/html.rkt")
-(require "../ignore.rkt")
-(require "../exceptions.rkt")
+(require racket/vector
+         racket/exn
+         db
+         gregor)
+(require "../structs.rkt"
+         "../reports/html.rkt"
+         "../ignore.rkt"
+         "../exceptions.rkt"
+         "../logging.rkt"
+         (prefix-in rules: "../pii/rules.rkt"))
 
 (module+ test
   (require rackunit)
@@ -37,27 +38,27 @@
                           #:summary-updater [update-html-summary-report update-html-summary-report])
   
   ; connect to the db
-  (log-info "Connecting to the database")
+  (log-agent-info "Connecting to the database")
   (define pgc (initialise-connection settings))
   (when (void? pgc)
     (raise-db-connection-error settings))
 
   ;  work out what to ignore
-  (log-info "Reading ignore file")
+  (log-agent-info "Reading ignore file")
   (define ignores (generate-ignore-lists settings))
   
   ; find all the tables
-  (log-info "Examining database structure")
+  (log-agent-info "Examining database structure")
   (define tables (list-tables pgc))
 
   ;; initialise summary report
-  (log-info "Initialise the output report")
+  (log-agent-info "Initialise the output report")
   (define report-location (save-html-summary-report #:output-dir (hash-ref settings 'outputDir)))
   
   ;; grab rows of data from each table, return pii rows
   ;;  TODO Note everything after listing tables should be parallel-ised to make it faster
   (map (lambda (table)
-         (log-info (format "Examining table ~a" table))
+         (log-agent-info (format "Examining table ~a" table))
          ;; deal with taking some small number of rows vs scanning the entire thing
          (define results (examine-table pgc ignores table))
          (save-report results #:output-dir (hash-ref settings 'outputDir))
@@ -65,15 +66,15 @@
        tables)
 
   ; return summary report location
-  (log-info (format "Run report at ~a" (path->string report-location))))
+  (log-agent-info (format "Run report at ~a" (path->string report-location))))
 
 (define (initialise-connection credentials #:connector [postgresql-connect postgresql-connect])
   (with-handlers ([exn:fail:network:errno? (lambda (e)
-                                             (log-info "Could not connect to the database server")
-                                             (log-debug (exn->string e)))]
+                                             (log-agent-info "Could not connect to the database server")
+                                             (log-agent-debug (exn->string e)))]
                   [exn:fail:sql? (lambda (e)
-                                  (log-info "Could not connect to the database with your credentials")
-                                  (log-debug (exn->string e)))])
+                                  (log-agent-info "Could not connect to the database with your credentials")
+                                  (log-agent-debug (exn->string e)))])
     (postgresql-connect #:user (hash-ref credentials 'username)
                         #:database (hash-ref credentials 'database)
                         #:password (hash-ref credentials 'password)

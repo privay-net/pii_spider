@@ -1,7 +1,7 @@
 #lang racket/base
 (require racket/function)
 
-(provide log-thread)
+(provide (except-out (all-defined-out) write-to-file write-to-port log-destinations))
 
 (define-logger agent #:parent (current-logger))
 (define agent-logger-receiver (make-log-receiver agent-logger 'info 'agent))

@@ -1,11 +1,13 @@
 #lang racket/base
 
-(require racket/string)
-(require racket/file)
-(require racket/port)
-(require txexpr)
-(require gregor)
-(require "../structs.rkt")
+(require racket/string
+         racket/file
+         racket/port
+         txexpr
+         gregor)
+
+(require "../structs.rkt"
+         "../logging.rkt")
 
 (module+ test
   (require rackunit))
@@ -210,12 +212,12 @@
                      #:save-file [call-with-output-file call-with-output-file]
                      #:mkdir [make-directory* make-directory*])
   (define report (html-table-report examined-table-record))
-  (log-debug (format "output directory for ~a is ~a"
+  (log-agent-debug (format "output directory for ~a is ~a"
                      (examined-table-name examined-table-record) (path->string output-dir)))
   (make-directory* output-dir)
   (define output-file-name (string-append (path->string output-dir) "/"
                                           (examined-table-name examined-table-record) ".html"))
-  (log-debug (format "output file for ~a is ~a"
+  (log-agent-debug (format "output file for ~a is ~a"
                      (examined-table-name examined-table-record) output-file-name))
 
   (call-with-output-file output-file-name

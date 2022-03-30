@@ -1,6 +1,7 @@
 #lang racket/base
 
 (require racket/hash)
+(require "logging.rkt")
 
 (provide default-settings add-environment-vars)
 
@@ -11,7 +12,7 @@
   (hash-set! result 'ignoreFile  "ignore.json")
   (hash-set! result 'daemon #f)
   (define output-dir (build-path (current-directory) "output"))
-  (log-debug (format "Default output directory is ~a" (path->string output-dir)))
+  (log-agent-debug (format "Default output directory is ~a" (path->string output-dir)))
   (hash-set! result 'outputDir output-dir)
   result)
 

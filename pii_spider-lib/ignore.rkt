@@ -1,9 +1,10 @@
 
 #lang racket/base
 
-(require json)
-(require racket/port)
-(require "structs.rkt")
+(require json
+         racket/port)
+(require "structs.rkt"
+         "logging.rkt")
 (module+ test
   (require racket/function)
   (require rackunit)
@@ -16,7 +17,7 @@
                                #:file-check [file-exists? file-exists?]
                                #:ignore-directives [extract-ignore-directives extract-ignore-directives])
   (define ignore-file (hash-ref settings 'ignoreFile))
-  (log-info "Checking for ignore file")
+  (log-agent-info "Checking for ignore file")
   (if (file-exists? ignore-file)
       (extract-ignore-directives ignore-file)
       (ignore null null null)))
