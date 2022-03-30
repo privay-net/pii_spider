@@ -6,6 +6,7 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    environment: test
     strategy:
       matrix:
         racket-variant: ['CS']
