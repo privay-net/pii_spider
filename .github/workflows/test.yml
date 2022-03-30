@@ -25,3 +25,5 @@ jobs:
         run: make install
       - name: Run Tests
         run: make test
+      - name: Generate Coverage Report
+        run: make cover-coveralls
