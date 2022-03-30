@@ -2,6 +2,7 @@
 ![GitHub Release (latest by date including pre-releases)](https://img.shields.io/github/v/release/privay-net/pii_spider?display_name=tag&include_prereleases)
 [![Issues](https://img.shields.io/github/issues-raw/privay-net/pii_spider.svg?maxAge=25000)](https://github.com/privay-net/pii_spider/issues) 
 ![main build](https://github.com/privay-net/pii_spider/actions/workflows/test.yml/badge.svg?branch=main)
+[![Coverage Status](https://coveralls.io/repos/github/privay-net/pii_spider/badge.svg?branch=main)](https://coveralls.io/github/privay-net/pii_spider?branch=main)
 
 # pii_spider
 pii_spider is a tool that helps you find PII or sensitive data in a database.  The idea is that you don't know anything but a database connection and pii_spider will look in all your tables and tell what's there.
